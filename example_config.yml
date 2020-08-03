@@ -1,0 +1,5 @@
+#Example configuration file, remember to remove "example_"!
+#For getting a discord token: https://discord.com/developers/applications
+
+#Bot token, get one from https://discord.com/developers/applications
+token: 
