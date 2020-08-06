@@ -106,6 +106,7 @@ func main() {
 
 	dg.AddHandler(messageCreate)
 	dg.AddHandler(guildCreate)
+	dg.AddHandler(ready)
 
 	//We set the intents that we use
 	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates)
@@ -116,8 +117,6 @@ func main() {
 		fmt.Println("Error opening Discord session: ", err)
 	}
 
-	_ = dg.UpdateStatus(0, "!bestemmia")
-
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("ttsBestemmie is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
@@ -126,6 +125,15 @@ func main() {
 
 	// Cleanly close down the Discord session.
 	_ = dg.Close()
+}
+
+func ready(s *discordgo.Session, _ *discordgo.Ready) {
+
+	// Set the playing status.
+	err := s.UpdateStatus(0, "!say o !bestemmia")
+	if err != nil {
+		fmt.Println("Can't set status,", err)
+	}
 }
 
 func guildCreate(_ *discordgo.Session, event *discordgo.GuildCreate) {
