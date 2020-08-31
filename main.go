@@ -54,11 +54,6 @@ func gen(bestemmia string, uuid string) {
 			_ = cmd.Run()
 		}
 
-		err = os.Remove("./temp/" + uuid + ".wav")
-		if err != nil {
-			fmt.Println("Can't delete file", err)
-		}
-
 	}
 
 }
