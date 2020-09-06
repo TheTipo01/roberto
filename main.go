@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -147,8 +148,47 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
-		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.ToUpper(bestemmia())))
+
+		splitted := strings.Split(m.Content, " ")
+
+		//If a number possibly exist
+		if len(splitted) > 1 {
+			n, err := strconv.Atoi(splitted[1])
+			if err == nil {
+				//And we can convert it to a n, we repeat the sound for n times
+
+				// Join the provided voice channel.
+				vc, err := s.ChannelVoiceJoin(vs.GuildID, vs.ChannelID, false, true)
+				if err != nil {
+					fmt.Println("Can't connect to voice channel,", err)
+					return
+				}
+
+				for i := 0; i < n; i++ {
+					if vs != nil {
+						if stop[vs.GuildID] {
+							playSound2(vs.GuildID, genAudio(strings.ToUpper(bestemmia())), vc)
+						} else {
+							//Resets the stop boolean
+							stop[vs.GuildID] = true
+							break
+						}
+
+					}
+				}
+
+				// Disconnect from the provided voice channel.
+				err = vc.Disconnect()
+				if err != nil {
+					fmt.Println("Can't disconnect from voice channel,", err)
+					return
+				}
+			}
+		} else {
+			if vs != nil {
+				//Else, we only do the command once
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.ToUpper(bestemmia())))
+			}
 		}
 
 		return
@@ -209,7 +249,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	server[guildID].Lock()
 
 	// Join the provided voice channel.
-	vc, err := s.ChannelVoiceJoin(guildID, channelID, false, false)
+	vc, err := s.ChannelVoiceJoin(guildID, channelID, false, true)
 	if err != nil {
 		return
 	}
@@ -266,6 +306,63 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 		fmt.Println("Can't disconnect from voice channel,", err)
 		return
 	}
+
+	// Releases the mutex lock for the server
+	server[guildID].Unlock()
+
+}
+
+// playSound2 plays a file to the provided channel given a voice connection.
+func playSound2(guildID, fileName string, vc *discordgo.VoiceConnection) {
+	var opuslen int16
+
+	file, err := os.Open("./temp/" + fileName)
+	if err != nil {
+		fmt.Println("Error opening dca file :", err)
+		return
+	}
+
+	//Locks the mutex for the current server
+	server[guildID].Lock()
+
+	// Start speaking.
+	_ = vc.Speaking(true)
+
+	for {
+		// Read opus frame length from dca file.
+		err = binary.Read(file, binary.LittleEndian, &opuslen)
+
+		// If this is the end of the file, just return.
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			err := file.Close()
+			if err != nil {
+				break
+			}
+			break
+		}
+
+		if err != nil {
+			fmt.Println("Error reading from dca file :", err)
+			break
+		}
+
+		// Read encoded pcm from dca file.
+		InBuf := make([]byte, opuslen)
+		err = binary.Read(file, binary.LittleEndian, &InBuf)
+
+		// Should not be any end of file errors
+		if err != nil {
+			fmt.Println("Error reading from dca file :", err)
+			break
+		}
+
+		// Stream data to discord
+		vc.OpusSend <- InBuf
+
+	}
+
+	// Stop speaking
+	_ = vc.Speaking(false)
 
 	// Releases the mutex lock for the server
 	server[guildID].Unlock()
