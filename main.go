@@ -148,8 +148,22 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
+		if vs == nil {
+			return
+		}
 
 		splitted := strings.Split(m.Content, " ")
+
+		//Locks the mutex for the current server
+		server[vs.GuildID].Lock()
+
+		// Join the provided voice channel.
+		vc, err := s.ChannelVoiceJoin(vs.GuildID, vs.ChannelID, false, true)
+		if err != nil {
+			fmt.Println("Can't connect to voice channel,", err)
+			server[vs.GuildID].Unlock()
+			return
+		}
 
 		//If a number possibly exist
 		if len(splitted) > 1 {
@@ -157,39 +171,32 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if err == nil {
 				//And we can convert it to a n, we repeat the sound for n times
 
-				// Join the provided voice channel.
-				vc, err := s.ChannelVoiceJoin(vs.GuildID, vs.ChannelID, false, true)
-				if err != nil {
-					fmt.Println("Can't connect to voice channel,", err)
-					return
-				}
-
 				for i := 0; i < n; i++ {
-					if vs != nil {
 						if stop[vs.GuildID] {
-							playSound2(vs.GuildID, genAudio(strings.ToUpper(bestemmia())), vc)
+							playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
 						} else {
 							//Resets the stop boolean
 							stop[vs.GuildID] = true
 							break
 						}
-
-					}
 				}
 
-				// Disconnect from the provided voice channel.
-				err = vc.Disconnect()
-				if err != nil {
-					fmt.Println("Can't disconnect from voice channel,", err)
-					return
-				}
 			}
 		} else {
-			if vs != nil {
-				//Else, we only do the command once
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.ToUpper(bestemmia())))
-			}
+			//Else, we only do the command once
+			playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
 		}
+
+		// Disconnect from the provided voice channel.
+		err = vc.Disconnect()
+		if err != nil {
+			fmt.Println("Can't disconnect from voice channel,", err)
+			server[vs.GuildID].Unlock()
+			return
+		}
+
+		// Releases the mutex lock for the server
+		server[vs.GuildID].Unlock()
 
 		return
 	}
@@ -313,7 +320,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 }
 
 // playSound2 plays a file to the provided channel given a voice connection.
-func playSound2(guildID, fileName string, vc *discordgo.VoiceConnection) {
+func playSound2(fileName string, vc *discordgo.VoiceConnection) {
 	var opuslen int16
 
 	file, err := os.Open("./temp/" + fileName)
@@ -321,9 +328,6 @@ func playSound2(guildID, fileName string, vc *discordgo.VoiceConnection) {
 		fmt.Println("Error opening dca file :", err)
 		return
 	}
-
-	//Locks the mutex for the current server
-	server[guildID].Lock()
 
 	// Start speaking.
 	_ = vc.Speaking(true)
@@ -363,8 +367,5 @@ func playSound2(guildID, fileName string, vc *discordgo.VoiceConnection) {
 
 	// Stop speaking
 	_ = vc.Speaking(false)
-
-	// Releases the mutex lock for the server
-	server[guildID].Unlock()
 
 }
