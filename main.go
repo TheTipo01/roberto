@@ -26,7 +26,7 @@ var (
 	server = make(map[string]*sync.Mutex)
 	stop   = make(map[string]bool)
 	b      []string
-	a      = [3]string{"Dio", "Gesu", "Madonna"}
+	a      = [3]string{"Dio", "Gesù", "Madonna"}
 )
 
 func bestemmia() string {
