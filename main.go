@@ -89,7 +89,7 @@ func init() {
 func main() {
 
 	if token == "" {
-		fmt.Println("No token provided. Please run: ttsBestemmie -token <bot token> or modify config.yml")
+		fmt.Println("No token provided. Please run: roberto -token <bot token> or modify config.yml")
 		return
 	}
 
@@ -114,7 +114,7 @@ func main() {
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("ttsBestemmie is now running.  Press CTRL-C to exit.")
+	fmt.Println("roberto is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -126,7 +126,7 @@ func main() {
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 	// Set the playing status.
-	err := s.UpdateStatus(0, "!say o !bestemmia")
+	err := s.UpdateStatus(0, "!say, !covid, !bestemmia 1")
 	if err != nil {
 		fmt.Println("Can't set status,", err)
 	}
@@ -172,13 +172,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				//And we can convert it to a n, we repeat the sound for n times
 
 				for i := 0; i < n; i++ {
-						if stop[vs.GuildID] {
-							playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
-						} else {
-							//Resets the stop boolean
-							stop[vs.GuildID] = true
-							break
-						}
+					if stop[vs.GuildID] {
+						playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
+					} else {
+						//Resets the stop boolean
+						stop[vs.GuildID] = true
+						break
+					}
 				}
 
 			}
@@ -224,6 +224,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
 			playSound(s, vs.GuildID, vs.ChannelID, genAudio(ricercaAndGetTreno(strings.TrimPrefix(message, "!treno "))))
+		}
+
+		return
+	}
+
+	if strings.HasPrefix(message, "!covid") {
+		go deleteMessage(s, m)
+
+		vs := findUserVoiceState(s, m.Author.ID)
+		if vs != nil {
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(getCovid()))
 		}
 
 		return
