@@ -51,7 +51,8 @@ func gen(bestemmia string, uuid string) {
 			cmd := exec.Command("/bin/bash", "gen.sh", uuid, bestemmia)
 			_ = cmd.Run()
 		case "windows":
-			cmd := exec.Command("gen.bat", uuid, bestemmia)
+			cmd := exec.Command("gen.bat", uuid)
+			cmd.Stdin = strings.NewReader(bestemmia)
 			_ = cmd.Run()
 		}
 
