@@ -263,6 +263,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 		fmt.Println("Error opening dca file :", err)
 		return
 	}
+	defer file.Close()
 
 	//Locks the mutex for the current server
 	server[guildID].Lock()
@@ -283,10 +284,6 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 		// If this is the end of the file, just return.
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			err := file.Close()
-			if err != nil {
-				break
-			}
 			break
 		}
 
@@ -340,6 +337,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection) {
 		fmt.Println("Error opening dca file :", err)
 		return
 	}
+	defer file.Close()
 
 	// Start speaking.
 	_ = vc.Speaking(true)
@@ -350,10 +348,6 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection) {
 
 		// If this is the end of the file, just return.
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			err := file.Close()
-			if err != nil {
-				break
-			}
 			break
 		}
 
