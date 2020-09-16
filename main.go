@@ -22,18 +22,19 @@ import (
 )
 
 var (
-	token  string
-	server = make(map[string]*sync.Mutex)
-	stop   = make(map[string]bool)
-	b      []string
-	a      = [3]string{"Dio", "Gesù", "Madonna"}
+	token      string
+	prefix     string
+	server     = make(map[string]*sync.Mutex)
+	stop       = make(map[string]bool)
+	adjectives []string
+	gods       = [3]string{"Dio", "Gesù", "Madonna"}
 )
 
 func bestemmia() string {
 
-	s1 := a[rand.Intn(len(a))]
+	s1 := gods[rand.Intn(len(gods))]
 
-	s := s1 + " " + b[rand.Intn(len(b))]
+	s := s1 + " " + adjectives[rand.Intn(len(adjectives))]
 
 	if s1 == "Madonna" {
 		s = s[:len(s)-2] + "a"
@@ -77,11 +78,12 @@ func init() {
 	} else {
 		// Config file found
 		token = viper.GetString("token")
+		prefix = viper.GetString("prefix")
 	}
 
 	// Read adjective
 	foo, _ := ioutil.ReadFile("parole.txt")
-	b = strings.Split(string(foo), "\n")
+	adjectives = strings.Split(string(foo), "\n")
 
 	// Initialize rand
 	rand.Seed(time.Now().Unix())
@@ -90,7 +92,12 @@ func init() {
 func main() {
 
 	if token == "" {
-		fmt.Println("No token provided. Please run: roberto -token <bot token> or modify config.yml")
+		fmt.Println("No token provided. Please modify config.yml")
+		return
+	}
+
+	if prefix == "" {
+		fmt.Println("No prefix provided. Please modify config.yml")
 		return
 	}
 
@@ -141,11 +148,12 @@ func guildCreate(_ *discordgo.Session, event *discordgo.GuildCreate) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Makes the message all uppercase and replaces endlines with blank spaces
-	message := strings.ReplaceAll(strings.ToLower(m.Content), "\n", " ")
+	// Makes the lowerMessage all uppercase and replaces endlines with blank spaces
+	lowerMessage := strings.ToLower(m.Content)
 
-	// check if the message is "!bestemmia"
-	if strings.HasPrefix(message, "!bestemmia") {
+	switch strings.Split(lowerMessage, " ")[0] {
+
+	case prefix + "bestemmia":
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
@@ -199,38 +207,34 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Releases the mutex lock for the server
 		server[vs.GuildID].Unlock()
 
-		return
-	}
+		break
 
-	if strings.HasPrefix(message, "!say") {
+	case prefix + "say":
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.TrimPrefix(message, "!say ")))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.TrimPrefix(lowerMessage, prefix+"say ")))
 		}
 
-		return
-	}
+		break
 
-	if strings.HasPrefix(message, "!stop") {
+	case prefix + "stop":
 		stop[m.GuildID] = false
 		go deleteMessage(s, m)
-		return
-	}
+		break
 
-	if strings.HasPrefix(message, "!treno") {
+	case prefix + "treno":
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(ricercaAndGetTreno(strings.TrimPrefix(message, "!treno "))))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(ricercaAndGetTreno(strings.TrimPrefix(lowerMessage, prefix+"treno "))))
 		}
 
-		return
-	}
+		break
 
-	if strings.HasPrefix(message, "!covid") {
+	case prefix + "covid":
 		go deleteMessage(s, m)
 
 		vs := findUserVoiceState(s, m.Author.ID)
@@ -238,7 +242,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			playSound(s, vs.GuildID, vs.ChannelID, genAudio(getCovid()))
 		}
 
-		return
+		break
 	}
 
 }
