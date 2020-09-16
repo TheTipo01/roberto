@@ -75,15 +75,15 @@ func init() {
 			return
 		}
 	} else {
-		//Config file found
+		// Config file found
 		token = viper.GetString("token")
 	}
 
-	//Read adjective
+	// Read adjective
 	foo, _ := ioutil.ReadFile("parole.txt")
 	b = strings.Split(string(foo), "\n")
 
-	//Initialize rand
+	// Initialize rand
 	rand.Seed(time.Now().Unix())
 }
 
@@ -105,7 +105,7 @@ func main() {
 	dg.AddHandler(guildCreate)
 	dg.AddHandler(ready)
 
-	//We set the intents that we use
+	// We set the intents that we use
 	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates)
 
 	// Open the websocket and begin listening.
@@ -141,7 +141,7 @@ func guildCreate(_ *discordgo.Session, event *discordgo.GuildCreate) {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	//Makes the message all uppercase and replaces endlines with blank spaces
+	// Makes the message all uppercase and replaces endlines with blank spaces
 	message := strings.ReplaceAll(strings.ToLower(m.Content), "\n", " ")
 
 	// check if the message is "!bestemmia"
@@ -155,7 +155,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		splitted := strings.Split(m.Content, " ")
 
-		//Locks the mutex for the current server
+		// Locks the mutex for the current server
 		server[vs.GuildID].Lock()
 
 		// Join the provided voice channel.
@@ -166,17 +166,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 
-		//If a number possibly exist
+		// If a number possibly exist
 		if len(splitted) > 1 {
 			n, err := strconv.Atoi(splitted[1])
 			if err == nil {
-				//And we can convert it to a n, we repeat the sound for n times
+				// And we can convert it to a n, we repeat the sound for n times
 
 				for i := 0; i < n; i++ {
 					if stop[vs.GuildID] {
 						playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
 					} else {
-						//Resets the stop boolean
+						// Resets the stop boolean
 						stop[vs.GuildID] = true
 						break
 					}
@@ -184,7 +184,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 			}
 		} else {
-			//Else, we only do the command once
+			// Else, we only do the command once
 			playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
 		}
 
@@ -265,7 +265,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	}
 	defer file.Close()
 
-	//Locks the mutex for the current server
+	// Locks the mutex for the current server
 	server[guildID].Lock()
 
 	// Join the provided voice channel.
@@ -310,7 +310,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 		}
 	}
 
-	//Resets the stop boolean
+	// Resets the stop boolean
 	stop[guildID] = true
 
 	// Stop speaking
