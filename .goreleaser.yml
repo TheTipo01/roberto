@@ -5,6 +5,7 @@ before:
 builds:
 - env:
   - CGO_ENABLED=1
+  - CC=arm-linux-gnueabi-gcc
   goos:
   - windows
   - linux
