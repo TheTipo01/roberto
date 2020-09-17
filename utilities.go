@@ -1,9 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log"
+	"math/rand"
+	"strings"
+)
+
+const (
+	tblCustomCommands = "CREATE TABLE IF NOT EXISTS \"customCommands\" (\"server\" VARCHAR(18) NOT NULL,\"command\" VARCHAR(50) NOT NULL,\"text\" VARCHAR(2000) NOT NULL);"
 )
 
 // deleteMessage delete a message
@@ -25,4 +32,88 @@ func findUserVoiceState(session *discordgo.Session, userid string) *discordgo.Vo
 		}
 	}
 	return nil
+}
+
+// advancedReplace returns src string with every instance of toReplace with a random item from a
+func advancedReplace(src string, toReplace string, a []string) (dst string) {
+	for i := 1; i <= strings.Count(src, toReplace); i++ {
+		dst = strings.Replace(src, toReplace, a[rand.Intn(len(a))], i)
+	}
+
+	return dst
+}
+
+// Executes a simple query given a DB
+func execQuery(query string, db *sql.DB) {
+	statement, err := db.Prepare(query)
+	if err != nil {
+		log.Println("Error preparing query,", err)
+		return
+	}
+
+	_, err = statement.Exec()
+	if err != nil {
+		log.Println("Error creating table,", err)
+	}
+}
+
+// Adds a custom command to db and to the command map
+func addCommand(command string, text string, guild string) {
+	// If the text is already in the map, we ignore it
+	if customCommands[guild][command] == text {
+		return
+	}
+
+	if customCommands[guild] == nil {
+		customCommands[guild] = make(map[string]string)
+	}
+
+	// Else, we add it to the map
+	customCommands[guild][command] = text
+
+	// And to the database
+	statement, _ := db.Prepare("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)")
+
+	_, err := statement.Exec(guild, command, text)
+	if err != nil {
+		log.Println("Error inserting into the database,", err)
+	}
+
+}
+
+// Removes a custom command from the db and from the command map
+func removeCustom(command string, guild string) {
+	// Remove from DB
+	statement, _ := db.Prepare("DELETE FROM customCommands WHERE server=? AND command=?")
+	_, err := statement.Exec(guild, command)
+	if err != nil {
+		log.Println("Error removing from the database,", err)
+	}
+
+	// Remove from the map
+	delete(customCommands[guild], command)
+}
+
+// Loads custom command from the database
+func loadCustomCommands(db *sql.DB) {
+	var guild, command, text string
+
+	rows, err := db.Query("SELECT * FROM customCommands")
+	if err != nil {
+		log.Println("Error querying database,", err)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(&guild, &command, &text)
+		if err != nil {
+			log.Println("Error scanning rows from query,", err)
+			continue
+		}
+
+		if customCommands[guild] == nil {
+			customCommands[guild] = make(map[string]string)
+		}
+
+		customCommands[guild][command] = text
+	}
 }

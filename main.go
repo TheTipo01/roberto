@@ -2,13 +2,16 @@ package main
 
 import (
 	"crypto/sha1"
+	"database/sql"
 	"encoding/base32"
 	"encoding/binary"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -22,12 +25,24 @@ import (
 )
 
 var (
-	token      string
-	prefix     string
-	server     = make(map[string]*sync.Mutex)
-	stop       = make(map[string]bool)
+	// Discord bot token
+	token string
+	// Prefix for discord commands
+	prefix string
+	// Mutex for syncing requests
+	server = make(map[string]*sync.Mutex)
+	// Boolean for skipping
+	stop = make(map[string]bool)
+	// Custom commands
+	customCommands = make(map[string]map[string]string)
+	// Array of adjectives
 	adjectives []string
-	gods       = [3]string{"Dio", "Gesù", "Madonna"}
+	// Gods
+	gods = []string{"Dio", "Gesù", "Madonna"}
+	// DB Stuff
+	dataSourceName = "./roberto.db"
+	driverName     = "sqlite3"
+	db             *sql.DB
 )
 
 func bestemmia() string {
@@ -62,6 +77,7 @@ func gen(bestemmia string, uuid string) {
 }
 
 func init() {
+	var err error
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
@@ -69,7 +85,7 @@ func init() {
 
 	viper.SetDefault("prefix", "!")
 
-	if err := viper.ReadInConfig(); err != nil {
+	if err = viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// Config file not found
 			fmt.Println("Config file not found! See example_config.yml")
@@ -87,6 +103,17 @@ func init() {
 
 	// Initialize rand
 	rand.Seed(time.Now().Unix())
+
+	// Database
+	db, err = sql.Open(driverName, dataSourceName)
+	if err != nil {
+		log.Println("Error opening db connection,", err)
+		return
+	}
+
+	execQuery(tblCustomCommands, db)
+
+	loadCustomCommands(db)
 }
 
 func main() {
@@ -134,7 +161,7 @@ func main() {
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 	// Set the playing status.
-	err := s.UpdateStatus(0, "!say, !covid, !bestemmia 1")
+	err := s.UpdateStatus(0, prefix+"say, "+prefix+"covid, "+prefix+"bestemmia 1")
 	if err != nil {
 		fmt.Println("Can't set status,", err)
 	}
@@ -243,6 +270,39 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		break
+
+		// Adds a custom command
+	case prefix + "custom":
+		go deleteMessage(s, m)
+
+		splitted := strings.Split(lowerMessage, " ")
+
+		if len(splitted) > 2 {
+			addCommand(splitted[1], strings.TrimPrefix(lowerMessage, prefix+"custom "+splitted[1]+" "), m.GuildID)
+		}
+		break
+
+		// Removes a custom command
+	case prefix + "rmcustom":
+		go deleteMessage(s, m)
+
+		removeCustom(strings.TrimPrefix(m.Content, prefix+"rmcustom "), m.GuildID)
+		break
+
+		// We search for possible custom commands
+	default:
+		lower := strings.TrimPrefix(lowerMessage, prefix)
+
+		if customCommands[m.GuildID][lower] != "" {
+			go deleteMessage(s, m)
+
+			vs := findUserVoiceState(s, m.Author.ID)
+			if vs != nil {
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(customCommands[m.GuildID][lower], "<god>", gods), "<dict>", adjectives)))
+			}
+
+			break
+		}
 	}
 
 }
