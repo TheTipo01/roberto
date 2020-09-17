@@ -35,9 +35,11 @@ func findUserVoiceState(session *discordgo.Session, userid string) *discordgo.Vo
 }
 
 // advancedReplace returns src string with every instance of toReplace with a random item from a
-func advancedReplace(src string, toReplace string, a []string) (dst string) {
-	for i := 1; i <= strings.Count(src, toReplace); i++ {
-		dst = strings.Replace(src, toReplace, a[rand.Intn(len(a))], i)
+func advancedReplace(src string, toReplace string, a []string) string {
+	var dst = src
+
+	for i := 0; i < strings.Count(src, toReplace); i++ {
+		dst = strings.Replace(dst, toReplace, a[rand.Intn(len(a))], 1)
 	}
 
 	return dst
