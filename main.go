@@ -161,7 +161,7 @@ func main() {
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 	// Set the playing status.
-	err := s.UpdateStatus(0, prefix+"say, "+prefix+"covid, "+prefix+"bestemmia 1")
+	err := s.UpdateStatus(0, prefix+"help")
 	if err != nil {
 		fmt.Println("Can't set status,", err)
 	}
@@ -287,6 +287,55 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		go deleteMessage(s, m)
 
 		removeCustom(strings.TrimPrefix(m.Content, prefix+"rmcustom "), m.GuildID)
+		break
+
+	case prefix + "preghiera":
+		go deleteMessage(s, m)
+
+		vs := findUserVoiceState(s, m.Author.ID)
+		if vs != nil {
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(GetRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
+		}
+
+		break
+
+		// Prints out supported commands
+	case prefix + "help", prefix + "h":
+		go deleteMessage(s, m)
+
+		message := "Supported commands:\n```" +
+			prefix + "say <text> - Says text out loud\n" +
+			prefix + "bestemmioa <n> - Generates a bestemmia n times\n" +
+			prefix + "treno <train number> - Fakes train announcement given it's number\n" +
+			prefix + "covid - Says covid data out loud for current day in Italy\n" +
+			prefix + "preghiera - Randomly select a custom command\n" +
+			prefix + "custom <custom command> <text> - Creates a custom command to say text out loud. The bot will replace <god> with a random god and <dict> with a random adjective\n" +
+			prefix + "rmcustom <custom command> - Removes a custom command\n" +
+			"```"
+		// If we have custom commands, we add them to the help message
+		if len(customCommands[m.GuildID]) > 0 {
+			message += "\nCustom commands:\n```"
+
+			for k := range customCommands[m.GuildID] {
+				message += k + ", "
+			}
+
+			message = strings.TrimSuffix(message, ", ")
+			message += "```"
+		}
+
+		mex, err := s.ChannelMessageSend(m.ChannelID, message)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		time.Sleep(time.Second * 30)
+
+		err = s.ChannelMessageDelete(m.ChannelID, mex.ID)
+		if err != nil {
+			fmt.Println(err)
+		}
 		break
 
 		// We search for possible custom commands
