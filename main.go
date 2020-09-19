@@ -305,7 +305,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		message := "Supported commands:\n```" +
 			prefix + "say <text> - Says text out loud\n" +
-			prefix + "bestemmioa <n> - Generates a bestemmia n times\n" +
+			prefix + "bestemmia <n> - Generates a bestemmia n times\n" +
 			prefix + "treno <train number> - Fakes train announcement given it's number\n" +
 			prefix + "covid - Says covid data out loud for current day in Italy\n" +
 			prefix + "preghiera - Randomly select a custom command\n" +
