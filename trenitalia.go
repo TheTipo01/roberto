@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Treno struct {
+type treno struct {
 	TipoTreno        string      `json:"tipoTreno"`
 	Orientamento     interface{} `json:"orientamento"`
 	CodiceCliente    int         `json:"codiceCliente"`
@@ -142,7 +142,7 @@ func ricercaAndGetTreno(idTreno string) string {
 		return ""
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 
 	if strings.TrimSpace(string(body)) == "" {
 		return ""
@@ -184,7 +184,7 @@ func getTreno(idStazioneTreno string) string {
 		return ""
 	}
 
-	treno := Treno{}
+	treno := treno{}
 
 	err = json.Unmarshal(body, &treno)
 	if err != nil {
