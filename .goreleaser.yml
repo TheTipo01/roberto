@@ -3,15 +3,17 @@ before:
     - go mod download
     - go generate ./...
 builds:
-- env:
-  - CGO_ENABLED=1
-  goos:
-  - windows
-  - linux
-  - darwin
-  goarch:
-  - amd64
-  - 386
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - 386
+      - arm
+      - arm64
 archives:
 - replacements:
     darwin: Darwin
