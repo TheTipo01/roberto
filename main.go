@@ -294,7 +294,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(getRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(GetRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
 		}
 
 		break
