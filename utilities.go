@@ -15,15 +15,18 @@ const (
 
 // deleteMessage delete a message
 func deleteMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
+
 	log.Println(m.Author.Username + ": " + m.Content)
 	err := s.ChannelMessageDelete(m.ChannelID, m.ID)
 	if err != nil {
 		fmt.Println("Can't delete message,", err)
 	}
+
 }
 
 // findUserVoiceState finds the voicestate of a user
 func findUserVoiceState(session *discordgo.Session, userid string) *discordgo.VoiceState {
+
 	for _, guild := range session.State.Guilds {
 		for _, vs := range guild.VoiceStates {
 			if vs.UserID == userid {
@@ -32,10 +35,12 @@ func findUserVoiceState(session *discordgo.Session, userid string) *discordgo.Vo
 		}
 	}
 	return nil
+
 }
 
 // advancedReplace returns src string with every instance of toReplace with a random item from a
 func advancedReplace(src string, toReplace string, a []string) string {
+
 	var dst = src
 
 	for i := 0; i < strings.Count(src, toReplace); i++ {
@@ -43,10 +48,12 @@ func advancedReplace(src string, toReplace string, a []string) string {
 	}
 
 	return dst
+
 }
 
 // Executes a simple query given a DB
 func execQuery(query string, db *sql.DB) {
+
 	statement, err := db.Prepare(query)
 	if err != nil {
 		log.Println("Error preparing query,", err)
@@ -57,10 +64,12 @@ func execQuery(query string, db *sql.DB) {
 	if err != nil {
 		log.Println("Error creating table,", err)
 	}
+
 }
 
 // Adds a custom command to db and to the command map
 func addCommand(command string, text string, guild string) {
+
 	// If the text is already in the map, we ignore it
 	if customCommands[guild][command] == text {
 		return
@@ -85,6 +94,7 @@ func addCommand(command string, text string, guild string) {
 
 // Removes a custom command from the db and from the command map
 func removeCustom(command string, guild string) {
+
 	// Remove from DB
 	statement, _ := db.Prepare("DELETE FROM customCommands WHERE server=? AND command=?")
 	_, err := statement.Exec(guild, command)
@@ -94,10 +104,12 @@ func removeCustom(command string, guild string) {
 
 	// Remove from the map
 	delete(customCommands[guild], command)
+
 }
 
 // Loads custom command from the database
 func loadCustomCommands(db *sql.DB) {
+
 	var guild, command, text string
 
 	rows, err := db.Query("SELECT * FROM customCommands")
@@ -118,10 +130,12 @@ func loadCustomCommands(db *sql.DB) {
 
 		customCommands[guild][command] = text
 	}
+
 }
 
 // Returns a random value from a map of string
 func GetRand(a map[string]string) string {
+
 	// produce a pseudo-random number between 0 and len(a)-1
 	i := int(float32(len(a)) * rand.Float32())
 	for _, v := range a {
@@ -132,4 +146,5 @@ func GetRand(a map[string]string) string {
 		}
 	}
 	panic("impossible")
+
 }

@@ -137,6 +137,7 @@ type Treno struct {
 }
 
 func ricercaAndGetTreno(idTreno string) string {
+
 	resp, err := http.Get("http://www.viaggiatreno.it/viaggiatrenonew/resteasy/viaggiatreno/cercaNumeroTrenoTrenoAutocomplete/" + idTreno)
 	if err != nil {
 		return ""
@@ -153,9 +154,11 @@ func ricercaAndGetTreno(idTreno string) string {
 	_ = resp.Body.Close()
 
 	return getTreno(strings.TrimSpace(combinato[1]) + "/" + combinato[0])
+
 }
 
 func getTreno(idStazioneTreno string) string {
+
 	pls := true
 	var stazioni, binario string
 	var ritardo int
@@ -210,4 +213,5 @@ func getTreno(idStazioneTreno string) string {
 	stazioni = strings.TrimSuffix(stazioni, ",") + "."
 
 	return "Il treno " + treno.CompTipologiaTreno + ", " + strconv.Itoa(treno.NumeroTreno) + ", di trenitalia, proveniente da " + treno.Origine + " ,e diretto a " + treno.Destinazione + ", delle ore " + ora.Format("15:04") + ", e' in arrivo al binario " + binario + "! Attenzione! Allontanarsi dalla linea gialla! Ferma a: " + stazioni
+
 }

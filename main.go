@@ -29,6 +29,8 @@ var (
 	token string
 	// Prefix for discord commands
 	prefix string
+	// Map of boolean so we don't reset mutex
+	mutexCreated = make(map[string]bool)
 	// Mutex for syncing requests
 	server = make(map[string]*sync.Mutex)
 	// Boolean for skipping
@@ -168,13 +170,21 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 }
 
 func guildCreate(_ *discordgo.Session, event *discordgo.GuildCreate) {
-	server[event.ID] = &sync.Mutex{}
-	stop[event.ID] = true
+
+	// Check if we already created the mutex
+	if !mutexCreated[event.ID] {
+		mutexCreated[event.ID] = true
+
+		server[event.ID] = &sync.Mutex{}
+		stop[event.ID] = true
+	}
+
 }
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+
 	// Makes the lowerMessage all uppercase and replaces endlines with blank spaces
 	lowerMessage := strings.ToLower(m.Content)
 
@@ -358,6 +368,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // genAudio generates a dca file from a string
 func genAudio(text string) string {
+
 	h := sha1.New()
 	h.Write([]byte(text))
 	uuid := strings.ToUpper(base32.HexEncoding.EncodeToString(h.Sum(nil)))
@@ -365,10 +376,12 @@ func genAudio(text string) string {
 	gen(text, uuid)
 
 	return uuid + ".dca"
+
 }
 
 // playSound plays a file to the provided channel.
 func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
+
 	var opuslen int16
 
 	file, err := os.Open("./temp/" + fileName)
@@ -443,6 +456,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 // playSound2 plays a file to the provided channel given a voice connection.
 func playSound2(fileName string, vc *discordgo.VoiceConnection) {
+
 	var opuslen int16
 
 	file, err := os.Open("./temp/" + fileName)

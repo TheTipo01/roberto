@@ -34,11 +34,14 @@ type DateTime struct {
 
 // Convert the CSV string as internal date
 func (date *DateTime) UnmarshalCSV(csv string) (err error) {
+
 	date.Time, err = time.Parse("2006-01-02T15:04:05", csv)
 	return err
+
 }
 
 func getCovid() string {
+
 	var covid []*Covid
 
 	resp, err := http.Get("https://github.com/pcm-dpc/COVID-19/raw/master/dati-andamento-nazionale/dpc-covid19-ita-andamento-nazionale.csv")
@@ -50,4 +53,5 @@ func getCovid() string {
 	_ = resp.Body.Close()
 
 	return "Dati del " + monday.Format(covid[len(covid)-1].Data.Time, "2 January 2006", monday.LocaleItIT) + ". Totale positivi: " + strconv.Itoa(covid[len(covid)-1].TotalePositivi) + "; Numero di tamponi effettuati oggi: " + strconv.Itoa(covid[len(covid)-1].Tamponi-covid[len(covid)-2].Tamponi) + "; Numero di morti oggi: " + strconv.Itoa(covid[len(covid)-1].Deceduti-covid[len(covid)-2].Deceduti) + "; Incremento di casi rispetto a ieri: " + strconv.Itoa(covid[len(covid)-1].VariazioneTotalePositivi)
+
 }
