@@ -397,6 +397,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	// Join the provided voice channel.
 	vc, err := s.ChannelVoiceJoin(guildID, channelID, false, true)
 	if err != nil {
+		server[guildID].Unlock()
 		return
 	}
 
