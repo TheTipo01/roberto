@@ -276,7 +276,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(getCovid()))
+			covid := getCovid()
+
+			_, _ = s.ChannelMessageSend(m.ChannelID, covid)
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(covid))
 		}
 
 		break
