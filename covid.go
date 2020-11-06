@@ -54,6 +54,6 @@ func getCovid() string {
 	_ = gocsv.Unmarshal(resp.Body, &covid)
 	_ = resp.Body.Close()
 
-	return "Dati del " + monday.Format(covid[len(covid)-1].Data.Time, "2 January 2006", monday.LocaleItIT) + "; Nuovi casi: " + p.Sprintf("%d", covid[len(covid)-1].NuoviPositivi) + "; Numero di tamponi effettuati oggi: " + p.Sprintf("%d", (covid[len(covid)-1].Tamponi-covid[len(covid)-2].Tamponi)) + "; Numero di morti oggi: " + p.Sprintf("%d", (covid[len(covid)-1].Deceduti-covid[len(covid)-2].Deceduti)) + "; Totale positivi: " + p.Sprintf("%d", covid[len(covid)-1].TotalePositivi)
+	return "Dati del " + monday.Format(covid[len(covid)-1].Data.Time, "2 January 2006", monday.LocaleItIT) + "; Nuovi casi: " + p.Sprintf("%d", covid[len(covid)-1].NuoviPositivi) + "; Numero di tamponi effettuati oggi: " + p.Sprintf("%d", covid[len(covid)-1].Tamponi-covid[len(covid)-2].Tamponi) + "; Numero di morti oggi: " + p.Sprintf("%d", (covid[len(covid)-1].Deceduti-covid[len(covid)-2].Deceduti)) + "; Totale positivi: " + p.Sprintf("%d", covid[len(covid)-1].TotalePositivi)
 
 }
