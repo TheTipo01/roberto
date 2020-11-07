@@ -188,7 +188,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Makes the lowerMessage all uppercase and replaces endlines with blank spaces
 	lowerMessage := strings.ToLower(m.Content)
 
-	switch strings.Split(lowerMessage, " ")[0] {
+	splitted := strings.Split(lowerMessage, " ")
+
+	switch splitted[0] {
 
 	case prefix + "bestemmia":
 		go deleteMessage(s, m)
@@ -197,8 +199,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if vs == nil {
 			return
 		}
-
-		splitted := strings.Split(m.Content, " ")
 
 		// Locks the mutex for the current server
 		server[vs.GuildID].Lock()
@@ -287,8 +287,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Adds a custom command
 	case prefix + "custom":
 		go deleteMessage(s, m)
-
-		splitted := strings.Split(lowerMessage, " ")
 
 		if len(splitted) > 2 {
 			addCommand(splitted[1], strings.TrimPrefix(lowerMessage, prefix+"custom "+splitted[1]+" "), m.GuildID)
