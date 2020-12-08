@@ -220,7 +220,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 				for i := 0; i < n; i++ {
 					if stop[vs.GuildID] {
-						playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
+						playSound2(genAudio(strings.ToUpper(bestemmia())), vc, s)
 					} else {
 						// Resets the stop boolean
 						stop[vs.GuildID] = true
@@ -231,7 +231,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		} else {
 			// Else, we only do the command once
-			playSound2(genAudio(strings.ToUpper(bestemmia())), vc)
+			playSound2(genAudio(strings.ToUpper(bestemmia())), vc, s)
 		}
 
 		// Disconnect from the provided voice channel.
@@ -407,6 +407,9 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	_ = vc.Speaking(true)
 	stop[guildID] = true
 
+	// Channel to send ok messages
+	c1 := make(chan string, 1)
+
 	for {
 		// Read opus frame length from dca file.
 		err = binary.Read(file, binary.LittleEndian, &opuslen)
@@ -433,7 +436,19 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 		// Stream data to discord
 		if stop[guildID] {
-			vc.OpusSend <- InBuf
+			// Send data in a goroutine
+			go func() {
+				vc.OpusSend <- InBuf
+				c1 <- "ok"
+			}()
+
+			// So if the bot gets disconnect/moved we can rejoin the original channel and continue playing songs
+			select {
+			case _ = <-c1:
+				break
+			case <-time.After(time.Second / 3):
+				vc, _ = s.ChannelVoiceJoin(guildID, channelID, false, true)
+			}
 		} else {
 			break
 		}
@@ -458,7 +473,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 }
 
 // playSound2 plays a file to the provided channel given a voice connection.
-func playSound2(fileName string, vc *discordgo.VoiceConnection) {
+func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Session) {
 
 	var opuslen int16
 
@@ -471,6 +486,12 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection) {
 
 	// Start speaking.
 	_ = vc.Speaking(true)
+
+	// Channel to send ok messages
+	c1 := make(chan string, 1)
+
+	guildID := vc.GuildID
+	channelID := vc.ChannelID
 
 	for {
 		// Read opus frame length from dca file.
@@ -497,7 +518,19 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection) {
 		}
 
 		// Stream data to discord
-		vc.OpusSend <- InBuf
+		// Send data in a goroutine
+		go func() {
+			vc.OpusSend <- InBuf
+			c1 <- "ok"
+		}()
+
+		// So if the bot gets disconnect/moved we can rejoin the original channel and continue playing songs
+		select {
+		case _ = <-c1:
+			break
+		case <-time.After(time.Second / 3):
+			vc, _ = s.ChannelVoiceJoin(guildID, channelID, false, true)
+		}
 
 	}
 
