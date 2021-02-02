@@ -134,16 +134,15 @@ func loadCustomCommands(db *sql.DB) {
 }
 
 // Returns a random value from a map of string
-func GetRand(a map[string]string) string {
+func getRand(a map[string]string) string {
 
 	// produce a pseudo-random number between 0 and len(a)-1
 	i := int(float32(len(a)) * rand.Float32())
 	for _, v := range a {
 		if i == 0 {
 			return v
-		} else {
-			i--
 		}
+		i--
 	}
 	panic("impossible")
 

@@ -164,7 +164,7 @@ func main() {
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 	// Set the playing status.
-	err := s.UpdateStatus(0, prefix+"help")
+	err := s.UpdateGameStatus(0, prefix+"help")
 	if err != nil {
 		fmt.Println("Can't set status,", err)
 	}
@@ -267,7 +267,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(ricercaAndGetTreno(strings.TrimPrefix(lowerMessage, prefix+"treno "))))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(searchAndGetTrain(strings.TrimPrefix(lowerMessage, prefix+"treno "))))
 		}
 
 		break
@@ -306,7 +306,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(GetRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(getRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
 		}
 
 		break
