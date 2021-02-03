@@ -17,7 +17,7 @@ func searchAndGetTrain(trainID string) string {
 		return ""
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, _ := ioutil.ReadAll(resp.Body)
 
 	out := string(body)
 	_ = resp.Body.Close()
