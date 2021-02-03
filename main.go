@@ -7,12 +7,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
+	_ "modernc.org/sqlite"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -43,7 +43,7 @@ var (
 	gods = []string{"Dio", "Gesù", "Madonna"}
 	// DB Stuff
 	dataSourceName = "./roberto.db"
-	driverName     = "sqlite3"
+	driverName     = "sqlite"
 	db             *sql.DB
 )
 
