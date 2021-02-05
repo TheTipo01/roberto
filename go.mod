@@ -7,7 +7,6 @@ require (
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52 // indirect
 	github.com/goodsign/monday v1.0.1-0.20201007115131-c065b60ec611
 	github.com/magiconair/properties v1.8.4 // indirect
-	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.8.2-0.20201124181426-2e01f733df54 // indirect
 	github.com/spf13/afero v1.5.1 // indirect
