@@ -56,11 +56,13 @@ func getTrain(idStazioneTreno string) string {
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
+	_ = res.Body.Close()
 	if err != nil {
 		return ""
 	}
 
 	err = json.Unmarshal(body, &treno)
+	body = nil
 	if err != nil {
 		return ""
 	}
@@ -83,6 +85,10 @@ func getTrain(idStazioneTreno string) string {
 
 	stazioni = strings.TrimSuffix(stazioni, ",") + "."
 
-	return "Il treno " + treno.CompTipologiaTreno + ", " + strconv.Itoa(treno.NumeroTreno) + ", di trenitalia, proveniente da " + treno.Origine + " ,e diretto a " + treno.Destinazione + ", delle ore " + ora.Format("15:04") + ", e' in arrivo al binario " + binario + "! Attenzione! Allontanarsi dalla linea gialla! Ferma a: " + stazioni
+	if stazioni != "." {
+		return "Il treno " + treno.CompTipologiaTreno + ", " + strconv.Itoa(treno.NumeroTreno) + ", di trenitalia, proveniente da " + treno.Origine + " ,e diretto a " + treno.Destinazione + ", delle ore " + ora.Format("15:04") + ", e' in arrivo al binario " + binario + "! Attenzione! Allontanarsi dalla linea gialla! Ferma a: " + stazioni
+	}
+
+	return "Il treno " + treno.CompTipologiaTreno + ", " + strconv.Itoa(treno.NumeroTreno) + ", di trenitalia, proveniente da " + treno.Origine + " ,e diretto a " + treno.Destinazione + ", delle ore " + ora.Format("15:04") + ", e' in arrivo al binario " + binario + "! Attenzione! Allontanarsi dalla linea gialla!"
 
 }
