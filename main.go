@@ -41,6 +41,8 @@ var (
 	adjectives []string
 	// Gods
 	gods = []string{"Dio", "Gesù", "Madonna"}
+	// Emoji slice
+	emoji = *emojiLoader()
 	// DB Stuff
 	dataSourceName = "./roberto.db"
 	driverName     = "sqlite"
@@ -252,7 +254,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(strings.TrimPrefix(lowerMessage, prefix+"say ")))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(emojiToDescription(strings.TrimPrefix(lowerMessage, prefix+"say "))))
 		}
 
 		break

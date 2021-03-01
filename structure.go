@@ -152,3 +152,8 @@ type covid []struct {
 	TamponiTestMolecolare              interface{} `json:"tamponi_test_molecolare"`
 	TamponiTestAntigenicoRapido        interface{} `json:"tamponi_test_antigenico_rapido"`
 }
+
+type Emoji []struct {
+	Descrizione string `json:"descrizione"`
+	Emoji       string `json:"emoji"`
+}
