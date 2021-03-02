@@ -2,11 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"log"
+	"github.com/bwmarrin/lit"
 	"math/rand"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 const (
@@ -14,33 +17,28 @@ const (
 )
 
 // deleteMessage delete a message
-func deleteMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-	log.Println(m.Author.Username + ": " + m.Content)
+func deleteMessage(s *discordgo.Session, m *discordgo.Message) {
+	lit.Info("%s: %s", m.Author.Username, m.Content)
 	err := s.ChannelMessageDelete(m.ChannelID, m.ID)
 	if err != nil {
-		fmt.Println("Can't delete message,", err)
+		lit.Error("Can't delete message, %s", err)
 	}
-
 }
 
 // findUserVoiceState finds the voicestate of a user
-func findUserVoiceState(session *discordgo.Session, userid string) *discordgo.VoiceState {
-
+func findUserVoiceState(session *discordgo.Session, userID string) *discordgo.VoiceState {
 	for _, guild := range session.State.Guilds {
 		for _, vs := range guild.VoiceStates {
-			if vs.UserID == userid {
+			if vs.UserID == userID {
 				return vs
 			}
 		}
 	}
 	return nil
-
 }
 
 // advancedReplace returns src string with every instance of toReplace with a random item from a
 func advancedReplace(src string, toReplace string, a []string) string {
-
 	var dst = src
 
 	for i := 0; i < strings.Count(src, toReplace); i++ {
@@ -48,94 +46,109 @@ func advancedReplace(src string, toReplace string, a []string) string {
 	}
 
 	return dst
-
 }
 
 // Executes a simple query given a DB
 func execQuery(query string, db *sql.DB) {
-
-	statement, err := db.Prepare(query)
+	stm, err := db.Prepare(query)
 	if err != nil {
-		log.Println("Error preparing query,", err)
+		lit.Error("Error preparing query, %s", err)
 		return
 	}
 
-	_, err = statement.Exec()
+	_, err = stm.Exec()
 	if err != nil {
-		log.Println("Error creating table,", err)
+		lit.Error("Error creating table, %s", err)
 	}
 
+	_ = stm.Close()
 }
 
 // Adds a custom command to db and to the command map
 func addCommand(command string, text string, guild string) {
+	initializeServer(guild)
 
 	// If the text is already in the map, we ignore it
-	if customCommands[guild][command] == text {
+	if server[guild].customCommands[command] == text {
 		return
 	}
 
-	if customCommands[guild] == nil {
-		customCommands[guild] = make(map[string]string)
-	}
-
 	// Else, we add it to the map
-	customCommands[guild][command] = text
+	server[guild].customCommands[command] = text
 
 	// And to the database
-	statement, _ := db.Prepare("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)")
+	stm, _ := db.Prepare("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)")
 
-	_, err := statement.Exec(guild, command, text)
+	_, err := stm.Exec(guild, command, text)
 	if err != nil {
-		log.Println("Error inserting into the database,", err)
+		lit.Error("Error inserting into the database, %s", err)
 	}
 
+	_ = stm.Close()
 }
 
 // Removes a custom command from the db and from the command map
 func removeCustom(command string, guild string) {
-
 	// Remove from DB
-	statement, _ := db.Prepare("DELETE FROM customCommands WHERE server=? AND command=?")
-	_, err := statement.Exec(guild, command)
+	stm, _ := db.Prepare("DELETE FROM customCommands WHERE server=? AND command=?")
+	_, err := stm.Exec(guild, command)
 	if err != nil {
-		log.Println("Error removing from the database,", err)
+		lit.Error("Error removing from the database, %s", err)
 	}
 
-	// Remove from the map
-	delete(customCommands[guild], command)
+	_ = stm.Close()
 
+	// Remove from the map
+	delete(server[guild].customCommands, command)
 }
 
 // Loads custom command from the database
 func loadCustomCommands(db *sql.DB) {
+	var (
+		guild, command, text string
+		guilds, commands     *sql.Rows
+		err                  error
+	)
 
-	var guild, command, text string
-
-	rows, err := db.Query("SELECT * FROM customCommands")
+	guilds, err = db.Query("SELECT server FROM customCommands GROUP BY server")
 	if err != nil {
-		log.Println("Error querying database,", err)
+		lit.Error("Error querying database, %s", err)
+		return
 	}
 
-	for rows.Next() {
-		err = rows.Scan(&guild, &command, &text)
+	for guilds.Next() {
+		err = guilds.Scan(&guild)
 		if err != nil {
-			log.Println("Error scanning rows from query,", err)
+			lit.Error("Error scanning server from query, %s", err)
 			continue
 		}
 
-		if customCommands[guild] == nil {
-			customCommands[guild] = make(map[string]string)
+		initializeServer(guild)
+
+		commands, err = db.Query("SELECT command, text FROM customCommands WHERE server=?", guild)
+		if err != nil {
+			lit.Error("Error querying database, %s", err)
+			continue
 		}
 
-		customCommands[guild][command] = text
+		for commands.Next() {
+			err = commands.Scan(&command, &text)
+			if err != nil {
+				lit.Error("Error scanning commands from query, %s", err)
+				continue
+			}
+
+			server[guild].customCommands[command] = text
+		}
+
+		_ = commands.Close()
 	}
 
+	_ = guilds.Close()
 }
 
 // Returns a random value from a map of string
 func getRand(a map[string]string) string {
-
 	// produce a pseudo-random number between 0 and len(a)-1
 	i := int(float32(len(a)) * rand.Float32())
 	for _, v := range a {
@@ -145,5 +158,45 @@ func getRand(a map[string]string) string {
 		i--
 	}
 	panic("impossible")
+}
 
+// Generates a bestemmia
+func bestemmia() string {
+	s1 := gods[rand.Intn(len(gods))]
+
+	s := s1 + " " + adjectives[rand.Intn(len(adjectives))]
+
+	if s1 == gods[2] {
+		s = s[:len(s)-2] + "a"
+	}
+
+	return s
+}
+
+// Generates a DCA file starting from a string and it's UUID
+func gen(bestemmia string, uuid string) {
+	_, err := os.Stat("./temp/" + uuid + ".dca")
+
+	if err != nil {
+		switch runtime.GOOS {
+		case "linux":
+			cmd := exec.Command("/bin/bash", "gen.sh", uuid, bestemmia)
+			_ = cmd.Run()
+		case "windows":
+			cmd := exec.Command("gen.bat", uuid)
+			cmd.Stdin = strings.NewReader(bestemmia)
+			_ = cmd.Run()
+		}
+	}
+}
+
+// Initialize server for a given guildID if it's nil
+func initializeServer(guildID string) {
+	if server[guildID] == nil {
+		server[guildID] = &Server{
+			mutex:          &sync.Mutex{},
+			stop:           true,
+			customCommands: make(map[string]string),
+		}
+	}
 }

@@ -2,39 +2,42 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/bwmarrin/lit"
 	"github.com/forPelevin/gomoji"
 	"io/ioutil"
 	"os"
 	"strings"
 )
 
-func emojiLoader() *Emoji {
+func emojiReplacer() *strings.Replacer {
 	var (
-		emojiJson Emoji
+		emojiJSON Emoji
+		args      []string
 	)
 
+	// Load JSON file
 	jsonFile, err := os.Open("emoji.json")
 	if err != nil {
-		fmt.Println("Error opening file: ", err)
-		return &emojiJson
+		lit.Error("Error opening file: %s", err)
+		return nil
 	}
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	_ = jsonFile.Close()
-	_ = json.Unmarshal(byteValue, &emojiJson)
+	_ = json.Unmarshal(byteValue, &emojiJSON)
 
-	byteValue = nil
+	// Create the replacer
+	for _, e := range emojiJSON {
+		args = append(args, e.Emoji, e.Descrizione)
+	}
 
-	return &emojiJson
+	return strings.NewReplacer(args...)
 }
 
 func emojiToDescription(str string) string {
 	if gomoji.ContainsEmoji(str) {
-		for _, e := range emoji {
-			str = strings.ReplaceAll(str, e.Emoji, e.Descrizione)
-		}
+		str = emoji.Replace(str)
 	}
 
-	return strings.ToUpper(str)
+	return strings.ToLower(str)
 }

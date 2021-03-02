@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 type treno struct {
 	TipoTreno        string      `json:"tipoTreno"`
 	Orientamento     interface{} `json:"orientamento"`
@@ -153,7 +155,18 @@ type covid []struct {
 	TamponiTestAntigenicoRapido        interface{} `json:"tamponi_test_antigenico_rapido"`
 }
 
+// Emoji holds info about emojis
 type Emoji []struct {
 	Descrizione string `json:"descrizione"`
 	Emoji       string `json:"emoji"`
+}
+
+// Server holds info about a guild
+type Server struct {
+	// Mutex for syncing requests
+	mutex *sync.Mutex
+	// Boolean for skipping
+	stop bool
+	// Custom commands
+	customCommands map[string]string
 }

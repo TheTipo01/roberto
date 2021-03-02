@@ -2,7 +2,10 @@
 #For getting a discord token: https://discord.com/developers/applications
 
 #Bot token, get one from https://discord.com/developers/applications
-token: 
+token: ""
 
 #Prefix for bot commands
 prefix: "."
+
+#Level of logging
+loglevel: "informational"

@@ -30,6 +30,7 @@ archives:
     - balcon.exe
     - libsamplerate.dll
     - parole.txt
+    - emoji.json
 checksum:
   name_template: 'checksums.txt'
 snapshot:

@@ -7,19 +7,16 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/lit"
 	"github.com/spf13/viper"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	_ "modernc.org/sqlite"
 	"os"
-	"os/exec"
 	"os/signal"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -29,113 +26,93 @@ var (
 	token string
 	// Prefix for discord commands
 	prefix string
-	// Map of boolean so we don't reset mutex
-	mutexCreated = make(map[string]bool)
-	// Mutex for syncing requests
-	server = make(map[string]*sync.Mutex)
-	// Boolean for skipping
-	stop = make(map[string]bool)
-	// Custom commands
-	customCommands = make(map[string]map[string]string)
+	// Server
+	server = make(map[string]*Server)
 	// Array of adjectives
 	adjectives []string
 	// Gods
 	gods = []string{"Dio", "Gesù", "Madonna"}
-	// Emoji slice
-	emoji = *emojiLoader()
-	// DB Stuff
-	dataSourceName = "./roberto.db"
-	driverName     = "sqlite"
-	db             *sql.DB
+	// Emoji replacer
+	emoji = *emojiReplacer()
+	// DB connection
+	db *sql.DB
 )
 
-func bestemmia() string {
-
-	s1 := gods[rand.Intn(len(gods))]
-
-	s := s1 + " " + adjectives[rand.Intn(len(adjectives))]
-
-	if s1 == "Madonna" {
-		s = s[:len(s)-2] + "a"
-	}
-
-	return s
-}
-
-func gen(bestemmia string, uuid string) {
-	_, err := os.Stat("./temp/" + uuid + ".dca")
-
-	if err != nil {
-		switch runtime.GOOS {
-		case "linux":
-			cmd := exec.Command("/bin/bash", "gen.sh", uuid, bestemmia)
-			_ = cmd.Run()
-		case "windows":
-			cmd := exec.Command("gen.bat", uuid)
-			cmd.Stdin = strings.NewReader(bestemmia)
-			_ = cmd.Run()
-		}
-
-	}
-
-}
+// DB parameters
+const (
+	dataSourceName = "./roberto.db"
+	driverName     = "sqlite"
+)
 
 func init() {
-	var err error
+	lit.LogLevel = lit.LogError
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
 	viper.AddConfigPath(".")
 
-	viper.SetDefault("prefix", "!")
-
-	if err = viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// Config file not found
-			fmt.Println("Config file not found! See example_config.yml")
+			lit.Error("Config file not found! See example_config.yml")
 			return
 		}
 	} else {
 		// Config file found
 		token = viper.GetString("token")
 		prefix = viper.GetString("prefix")
+
+		// Set lit.LogLevel to the given value
+		switch strings.ToLower(viper.GetString("loglevel")) {
+		case "logerror", "error":
+			lit.LogLevel = lit.LogError
+			break
+		case "logwarning", "warning":
+			lit.LogLevel = lit.LogWarning
+			break
+		case "loginformational", "informational":
+			lit.LogLevel = lit.LogInformational
+			break
+		case "logdebug", "debug":
+			lit.LogLevel = lit.LogDebug
+			break
+		}
+
+		// Read adjective
+		foo, _ := ioutil.ReadFile("parole.txt")
+		adjectives = strings.Split(string(foo), "\n")
+
+		// Initialize rand
+		rand.Seed(time.Now().Unix())
+
+		// Database
+		db, err = sql.Open(driverName, dataSourceName)
+		if err != nil {
+			lit.Error("Error opening database connection, %s", err)
+			return
+		}
+
+		execQuery(tblCustomCommands, db)
+
+		loadCustomCommands(db)
 	}
-
-	// Read adjective
-	foo, _ := ioutil.ReadFile("parole.txt")
-	adjectives = strings.Split(string(foo), "\n")
-
-	// Initialize rand
-	rand.Seed(time.Now().Unix())
-
-	// Database
-	db, err = sql.Open(driverName, dataSourceName)
-	if err != nil {
-		log.Println("Error opening db connection,", err)
-		return
-	}
-
-	execQuery(tblCustomCommands, db)
-
-	loadCustomCommands(db)
 }
 
 func main() {
-
 	if token == "" {
-		fmt.Println("No token provided. Please modify config.yml")
+		lit.Error("No token provided. Please modify config.yml")
 		return
 	}
 
 	if prefix == "" {
-		fmt.Println("No prefix provided. Please modify config.yml")
+		lit.Error("No prefix provided. Please modify config.yml")
 		return
 	}
 
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
-		fmt.Println("Error creating Discord session: ", err)
+		lit.Error("Error creating Discord session: %s", err)
 		return
 	}
 
@@ -149,12 +126,12 @@ func main() {
 	// Open the websocket and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("Error opening Discord session: ", err)
+		lit.Error("Error opening Discord session: %s", err)
 		return
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("roberto is now running.  Press CTRL-C to exit.")
+	lit.Info("roberto is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -164,39 +141,33 @@ func main() {
 }
 
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
-
 	// Set the playing status.
 	err := s.UpdateGameStatus(0, prefix+"help")
 	if err != nil {
-		fmt.Println("Can't set status,", err)
+		lit.Error("Can't set status, %s", err)
 	}
 }
 
-func guildCreate(_ *discordgo.Session, event *discordgo.GuildCreate) {
-
-	// Check if we already created the mutex
-	if !mutexCreated[event.ID] {
-		mutexCreated[event.ID] = true
-
-		server[event.ID] = &sync.Mutex{}
-		stop[event.ID] = true
-	}
-
+func guildCreate(_ *discordgo.Session, e *discordgo.GuildCreate) {
+	initializeServer(e.Guild.ID)
 }
 
-// This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Ignore messages sent from the bot, messages if the user is a bot, and messages without the prefix
+	if s.State.User.ID == m.Author.ID || m.Author.Bot || !strings.HasPrefix(m.Content, prefix) {
+		return
+	}
 
-	// Makes the lowerMessage all uppercase and replaces endlines with blank spaces
-	lowerMessage := strings.ToLower(m.Content)
+	// Split the message on spaces
+	splittedMessage := strings.Split(m.Content, " ")
 
-	splitted := strings.Split(lowerMessage, " ")
+	command := strings.TrimPrefix(strings.ToLower(splittedMessage[0]), prefix)
 
-	switch splitted[0] {
+	lowerMessage := strings.ToLower(strings.TrimPrefix(m.Content, splittedMessage[0]))
 
-	case prefix + "bestemmia":
-		go deleteMessage(s, m)
+	switch command {
+	case "bestemmia":
+		go deleteMessage(s, m.Message)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs == nil {
@@ -204,32 +175,31 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		// Locks the mutex for the current server
-		server[vs.GuildID].Lock()
+		server[vs.GuildID].mutex.Lock()
 
 		// Join the provided voice channel.
 		vc, err := s.ChannelVoiceJoin(vs.GuildID, vs.ChannelID, false, true)
 		if err != nil {
-			fmt.Println("Can't connect to voice channel,", err)
-			server[vs.GuildID].Unlock()
+			lit.Error("Can't connect to voice channel, %s", err)
+			server[vs.GuildID].mutex.Unlock()
 			return
 		}
 
 		// If a number possibly exist
-		if len(splitted) > 1 {
-			n, err := strconv.Atoi(splitted[1])
+		if len(splittedMessage) > 1 {
+			n, err := strconv.Atoi(splittedMessage[1])
 			if err == nil {
 				// And we can convert it to a n, we repeat the sound for n times
 
 				for i := 0; i < n; i++ {
-					if stop[vs.GuildID] {
+					if server[vs.GuildID].stop {
 						playSound2(genAudio(strings.ToUpper(bestemmia())), vc, s)
 					} else {
 						// Resets the stop boolean
-						stop[vs.GuildID] = true
+						server[vs.GuildID].stop = true
 						break
 					}
 				}
-
 			}
 		} else {
 			// Else, we only do the command once
@@ -239,43 +209,38 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Disconnect from the provided voice channel.
 		err = vc.Disconnect()
 		if err != nil {
-			fmt.Println("Can't disconnect from voice channel,", err)
-			server[vs.GuildID].Unlock()
-			return
+			lit.Error("Can't disconnect from voice channel, %s", err)
 		}
 
 		// Releases the mutex lock for the server
-		server[vs.GuildID].Unlock()
-
+		server[vs.GuildID].mutex.Unlock()
 		break
 
-	case prefix + "say":
-		go deleteMessage(s, m)
+	case "say":
+		go deleteMessage(s, m.Message)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
 			playSound(s, vs.GuildID, vs.ChannelID, genAudio(emojiToDescription(strings.TrimPrefix(lowerMessage, prefix+"say "))))
 		}
-
 		break
 
-	case prefix + "stop":
-		stop[m.GuildID] = false
-		go deleteMessage(s, m)
+	case "stop":
+		server[m.GuildID].stop = false
+		go deleteMessage(s, m.Message)
 		break
 
-	case prefix + "treno":
-		go deleteMessage(s, m)
+	case "treno":
+		go deleteMessage(s, m.Message)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
 			playSound(s, vs.GuildID, vs.ChannelID, genAudio(searchAndGetTrain(strings.TrimPrefix(lowerMessage, prefix+"treno "))))
 		}
-
 		break
 
-	case prefix + "covid":
-		go deleteMessage(s, m)
+	case "covid":
+		go deleteMessage(s, m.Message)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
@@ -284,38 +249,36 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			_, _ = s.ChannelMessageSend(m.ChannelID, covid)
 			playSound(s, vs.GuildID, vs.ChannelID, genAudio(covid))
 		}
-
 		break
 
 		// Adds a custom command
-	case prefix + "custom":
-		go deleteMessage(s, m)
+	case "custom":
+		go deleteMessage(s, m.Message)
 
-		if len(splitted) > 2 {
-			addCommand(splitted[1], strings.TrimPrefix(lowerMessage, prefix+"custom "+splitted[1]+" "), m.GuildID)
+		if len(splittedMessage) > 2 {
+			addCommand(splittedMessage[1], strings.TrimPrefix(lowerMessage, prefix+"custom "+splittedMessage[1]+" "), m.GuildID)
 		}
 		break
 
 		// Removes a custom command
-	case prefix + "rmcustom":
-		go deleteMessage(s, m)
+	case "rmcustom":
+		go deleteMessage(s, m.Message)
 
 		removeCustom(strings.TrimPrefix(m.Content, prefix+"rmcustom "), m.GuildID)
 		break
 
 	case prefix + "preghiera":
-		go deleteMessage(s, m)
+		go deleteMessage(s, m.Message)
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(getRand(customCommands[m.GuildID]), "<god>", gods), "<dict>", adjectives)))
+			playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(getRand(server[m.GuildID].customCommands), "<god>", gods), "<dict>", adjectives)))
 		}
-
 		break
 
 		// Prints out supported commands
-	case prefix + "help", prefix + "h":
-		go deleteMessage(s, m)
+	case "help", "h":
+		go deleteMessage(s, m.Message)
 
 		message := "Supported commands:\n```" +
 			prefix + "say <text> - Says text out loud\n" +
@@ -327,10 +290,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			prefix + "rmcustom <custom command> - Removes a custom command\n" +
 			"```"
 		// If we have custom commands, we add them to the help message
-		if len(customCommands[m.GuildID]) > 0 {
+		if len(server[m.GuildID].customCommands) > 0 {
 			message += "\nCustom commands:\n```"
 
-			for k := range customCommands[m.GuildID] {
+			for k := range server[m.GuildID].customCommands {
 				message += k + ", "
 			}
 
@@ -354,25 +317,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		// We search for possible custom commands
 	default:
-		lower := strings.TrimPrefix(lowerMessage, prefix)
-
-		if customCommands[m.GuildID][lower] != "" {
-			go deleteMessage(s, m)
+		if server[m.GuildID].customCommands[command] != "" {
+			go deleteMessage(s, m.Message)
 
 			vs := findUserVoiceState(s, m.Author.ID)
 			if vs != nil {
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(customCommands[m.GuildID][lower], "<god>", gods), "<dict>", adjectives)))
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(server[m.GuildID].customCommands[command], "<god>", gods), "<dict>", adjectives)))
 			}
-
 			break
 		}
 	}
-
 }
 
 // genAudio generates a dca file from a string
 func genAudio(text string) string {
-
 	h := sha1.New()
 	h.Write([]byte(text))
 	uuid := strings.ToUpper(base32.HexEncoding.EncodeToString(h.Sum(nil)))
@@ -380,34 +338,32 @@ func genAudio(text string) string {
 	gen(text, uuid)
 
 	return uuid + ".dca"
-
 }
 
 // playSound plays a file to the provided channel.
 func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
-
 	var opuslen int16
 
 	file, err := os.Open("./temp/" + fileName)
 	if err != nil {
-		fmt.Println("Error opening dca file :", err)
+		lit.Error("Error opening dca file: %s", err)
 		return
 	}
 	defer file.Close()
 
 	// Locks the mutex for the current server
-	server[guildID].Lock()
+	server[guildID].mutex.Lock()
 
 	// Join the provided voice channel.
 	vc, err := s.ChannelVoiceJoin(guildID, channelID, false, true)
 	if err != nil {
-		server[guildID].Unlock()
+		server[guildID].mutex.Unlock()
 		return
 	}
 
 	// Start speaking.
 	_ = vc.Speaking(true)
-	stop[guildID] = true
+	server[guildID].stop = true
 
 	// Channel to send ok messages
 	c1 := make(chan string, 1)
@@ -422,7 +378,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 		}
 
 		if err != nil {
-			fmt.Println("Error reading from dca file :", err)
+			lit.Error("Error reading from dca file: %s", err)
 			break
 		}
 
@@ -432,12 +388,12 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 		// Should not be any end of file errors
 		if err != nil {
-			fmt.Println("Error reading from dca file :", err)
+			lit.Error("Error reading from dca file: %s", err)
 			break
 		}
 
 		// Stream data to discord
-		if stop[guildID] {
+		if server[guildID].stop {
 			// Send data in a goroutine
 			go func() {
 				vc.OpusSend <- InBuf
@@ -457,7 +413,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	}
 
 	// Resets the stop boolean
-	stop[guildID] = true
+	server[guildID].stop = true
 
 	// Stop speaking
 	_ = vc.Speaking(false)
@@ -465,23 +421,21 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 	// Disconnect from the provided voice channel.
 	err = vc.Disconnect()
 	if err != nil {
-		fmt.Println("Can't disconnect from voice channel,", err)
+		lit.Error("Can't disconnect from voice channel, %s", err)
 		return
 	}
 
 	// Releases the mutex lock for the server
-	server[guildID].Unlock()
-
+	server[guildID].mutex.Unlock()
 }
 
 // playSound2 plays a file to the provided channel given a voice connection.
 func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Session) {
-
 	var opuslen int16
 
 	file, err := os.Open("./temp/" + fileName)
 	if err != nil {
-		fmt.Println("Error opening dca file :", err)
+		lit.Error("Error opening dca file: %s", err)
 		return
 	}
 	defer file.Close()
@@ -505,7 +459,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 		}
 
 		if err != nil {
-			fmt.Println("Error reading from dca file :", err)
+			lit.Error("Error reading from dca file: %s", err)
 			break
 		}
 
@@ -515,7 +469,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 		// Should not be any end of file errors
 		if err != nil {
-			fmt.Println("Error reading from dca file :", err)
+			lit.Error("Error reading from dca file: %s", err)
 			break
 		}
 
@@ -538,5 +492,4 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 	// Stop speaking
 	_ = vc.Speaking(false)
-
 }

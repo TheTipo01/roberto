@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/bwmarrin/discordgo v0.23.2
+	github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312
 	github.com/forPelevin/gomoji v0.0.0-20210102155214-f0681219d254
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52 // indirect
 	github.com/goodsign/monday v1.0.1-0.20201007115131-c065b60ec611
