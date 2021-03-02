@@ -14,30 +14,35 @@ builds:
       - 386
       - arm
       - arm64
+    ignore:
+      - goos: darwin
+        goarch: arm64
+      - goos: darwin
+        goarch: arm
 archives:
-- replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
-  files:
-    - README.md
-    - LICENSE 
-    - example_config.yml
-    - gen.bat
-    - gen.sh
-    - balcon.exe
-    - libsamplerate.dll
-    - parole.txt
-    - emoji.json
+  - replacements:
+      '386': i386
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+    files:
+      - README.md
+      - LICENSE
+      - example_config.yml
+      - gen.bat
+      - gen.sh
+      - balcon.exe
+      - libsamplerate.dll
+      - parole.txt
+      - emoji.json
 checksum:
-  name_template: 'checksums.txt'
+  name_template: checksums.txt
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: '{{ .Tag }}-next'
 changelog:
   sort: asc
   filters:
     exclude:
-    - '^docs:'
-    - '^test:'
+      - '^docs:'
+      - '^test:'
