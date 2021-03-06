@@ -163,7 +163,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	command := strings.TrimPrefix(strings.ToLower(splittedMessage[0]), prefix)
 
-	lowerMessage := strings.ToLower(strings.TrimPrefix(m.Content, splittedMessage[0]))
+	lowerMessage := strings.ToLower(strings.TrimPrefix(m.Content, splittedMessage[0]+" "))
 
 	switch command {
 	case "bestemmia":
@@ -235,7 +235,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		vs := findUserVoiceState(s, m.Author.ID)
 		if vs != nil {
-			playSound(s, vs.GuildID, vs.ChannelID, genAudio(searchAndGetTrain(strings.TrimPrefix(lowerMessage, prefix+"treno "))))
+			trainAnnounce := searchAndGetTrain(lowerMessage)
+			if trainAnnounce != "" {
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(trainAnnounce))
+			} else {
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio("Nessun treno trovato, agagagaga!"))
+			}
+
 		}
 		break
 

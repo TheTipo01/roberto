@@ -62,7 +62,6 @@ func getTrain(idStazioneTreno string) string {
 	}
 
 	err = json.Unmarshal(body, &treno)
-	body = nil
 	if err != nil {
 		return ""
 	}
