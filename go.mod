@@ -8,7 +8,8 @@ require (
 	github.com/forPelevin/gomoji v0.0.0-20210102155214-f0681219d254
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52 // indirect
 	github.com/goodsign/monday v1.0.1-0.20201007115131-c065b60ec611
-	github.com/klauspost/compress v1.11.9 // indirect
+	github.com/json-iterator/go v1.1.10
+	github.com/klauspost/compress v1.11.12 // indirect
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.8.2-0.20201124181426-2e01f733df54 // indirect
@@ -20,8 +21,13 @@ require (
 	github.com/tidwall/gjson v1.6.8 // indirect
 	github.com/tidwall/pretty v1.1.0 // indirect
 	github.com/valyala/fasthttp v1.22.0 // indirect
-	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b // indirect
+	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
+	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/sys v0.0.0-20210315160823-c6e025ad8005 // indirect
 	golang.org/x/text v0.3.5
+	golang.org/x/tools v0.1.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	modernc.org/sqlite v1.8.8
+	modernc.org/ccgo/v3 v3.9.1 // indirect
+	modernc.org/sqlite v1.10.0
+	modernc.org/strutil v1.1.1 // indirect
 )

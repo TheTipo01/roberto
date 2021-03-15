@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/goodsign/monday"
+	jsoniter "github.com/json-iterator/go"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"io/ioutil"
@@ -26,7 +26,7 @@ func getCovid() string {
 	data, _ := ioutil.ReadAll(resp.Body)
 	_ = resp.Body.Close()
 
-	err = json.Unmarshal(data, &covid)
+	err = jsoniter.ConfigFastest.Unmarshal(data, &covid)
 	if err != nil {
 		return ""
 	}
