@@ -11,7 +11,6 @@ import (
 )
 
 func getCovid() string {
-
 	var (
 		covid covid
 		p     = message.NewPrinter(language.Italian)

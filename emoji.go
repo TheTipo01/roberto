@@ -1,9 +1,9 @@
 package main
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"github.com/bwmarrin/lit"
 	"github.com/forPelevin/gomoji"
+	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"os"
 	"strings"
