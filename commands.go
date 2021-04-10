@@ -117,6 +117,8 @@ var (
 				return
 			}
 
+			c := make(chan int)
+
 			// Locks the mutex for the current server
 			server[vs.GuildID].mutex.Lock()
 
@@ -140,14 +142,16 @@ var (
 						bstm := bestemmia()
 
 						if cont == 0 {
-							sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-								SetColor(0x7289DA).MessageEmbed, i.Interaction)
+							go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
+								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						} else {
-							modfyInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-								SetColor(0x7289DA).MessageEmbed, i.Interaction)
+							go modfyInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
+								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						}
 
 						playSound2(genAudio(strings.ToUpper(bstm)), vc, s)
+
+						<-c
 					} else {
 						// Resets the stop boolean
 						server[vs.GuildID].stop = true
@@ -158,12 +162,13 @@ var (
 				// Else, we only do the command once
 				bstm := bestemmia()
 
-				sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction)
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
 				playSound2(genAudio(strings.ToUpper(bstm)), vc, s)
 			}
 
+			<-c
 			// Deletes interaction as we have finished
 			err = s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
 			if err != nil {
@@ -185,12 +190,14 @@ var (
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
 				text := i.Data.Options[0].StringValue()
+				c := make(chan int)
 
-				sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Say", text).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction)
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Say", text).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
 				playSound(s, vs.GuildID, vs.ChannelID, genAudio(emojiToDescription(text)))
 
+				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
@@ -213,15 +220,19 @@ var (
 		"treno": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
+				c := make(chan int)
+
 				trainAnnounce := searchAndGetTrain(i.Data.Options[0].StringValue())
 				if trainAnnounce == "" {
 					trainAnnounce = "Nessun treno trovato, agagagaga!"
 				}
-				sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Treno", trainAnnounce).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction)
+
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Treno", trainAnnounce).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
 				playSound(s, vs.GuildID, vs.ChannelID, genAudio(trainAnnounce))
 
+				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
@@ -235,10 +246,9 @@ var (
 			if vs != nil {
 				covid := getCovid()
 
-				sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Covid", covid).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction)
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Covid", covid).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, nil)
 
-				_, _ = s.ChannelMessageSend(i.ChannelID, covid)
 				playSound(s, vs.GuildID, vs.ChannelID, genAudio(covid))
 			}
 		},
@@ -272,12 +282,14 @@ var (
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
 				text := advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", gods), "<dict>", adjectives)
+				c := make(chan int)
 
-				sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Preghiera", text).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction)
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Preghiera", text).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
 				playSound(s, vs.GuildID, vs.ChannelID, genAudio(text))
 
+				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())

@@ -1,7 +1,7 @@
 package main
 
 import (
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -55,13 +55,8 @@ func getTrain(idStazioneTreno string) string {
 		return ""
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	err = json.NewDecoder(res.Body).Decode(&treno)
 	_ = res.Body.Close()
-	if err != nil {
-		return ""
-	}
-
-	err = jsoniter.ConfigFastest.Unmarshal(body, &treno)
 	if err != nil {
 		return ""
 	}
