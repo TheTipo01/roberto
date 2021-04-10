@@ -70,9 +70,7 @@ func init() {
 			break
 		}
 
-		// Read adjective
-		foo, _ := ioutil.ReadFile("parole.txt")
-		adjectives = strings.Split(string(foo), "\n")
+		initializeAdjectives()
 
 		// Initialize rand
 		rand.Seed(time.Now().Unix())
@@ -162,4 +160,10 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 func guildCreate(_ *discordgo.Session, e *discordgo.GuildCreate) {
 	initializeServer(e.Guild.ID)
+}
+
+// Reads adjectives
+func initializeAdjectives() {
+	foo, _ := ioutil.ReadFile("parole.txt")
+	adjectives = strings.Split(string(foo), "\n")
 }
