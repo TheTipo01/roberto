@@ -3,8 +3,7 @@ package main
 import (
 	"github.com/bwmarrin/lit"
 	"github.com/forPelevin/gomoji"
-	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
+	"github.com/goccy/go-json"
 	"os"
 	"strings"
 )
@@ -22,9 +21,8 @@ func emojiReplacer() *strings.Replacer {
 		return nil
 	}
 
-	byteValue, _ := ioutil.ReadAll(jsonFile)
+	_ = json.NewDecoder(jsonFile).Decode(&emojiJSON)
 	_ = jsonFile.Close()
-	_ = jsoniter.ConfigFastest.Unmarshal(byteValue, &emojiJSON)
 
 	// Create the replacer
 	for _, e := range emojiJSON {

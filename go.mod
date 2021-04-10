@@ -9,7 +9,6 @@ require (
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52 // indirect
 	github.com/goccy/go-json v0.4.11
 	github.com/goodsign/monday v1.0.1-0.20201007115131-c065b60ec611
-	github.com/json-iterator/go v1.1.10
 	github.com/klauspost/compress v1.11.13 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
