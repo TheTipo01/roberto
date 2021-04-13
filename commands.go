@@ -166,9 +166,9 @@ var (
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
 				playSound2(genAudio(strings.ToUpper(bstm)), vc, s)
+				<-c
 			}
 
-			<-c
 			// Deletes interaction as we have finished
 			err = s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
 			if err != nil {
