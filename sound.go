@@ -70,7 +70,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 			// So if the bot gets disconnect/moved we can rejoin the original channel and continue playing songs
 			select {
-			case _ = <-c1:
+			case <-c1:
 				break
 			case <-time.After(time.Second / 3):
 				vc, _ = s.ChannelVoiceJoin(guildID, channelID, false, true)
@@ -152,8 +152,8 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 		// So if the bot gets disconnect/moved we can rejoin the original channel and continue playing songs
 		select {
-		case _ = <-c1:
-			break
+		case <-c1:
+
 		case <-time.After(time.Second / 3):
 			vc, _ = s.ChannelVoiceJoin(guildID, channelID, false, true)
 		}

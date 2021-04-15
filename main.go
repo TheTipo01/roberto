@@ -26,7 +26,7 @@ var (
 	// Gods
 	gods = []string{"Dio", "Gesù", "Madonna"}
 	// Emoji replacer
-	emoji = *emojiReplacer()
+	emoji = emojiReplacer()
 	// DB connection
 	db *sql.DB
 )
@@ -58,16 +58,15 @@ func init() {
 		switch strings.ToLower(viper.GetString("loglevel")) {
 		case "logerror", "error":
 			lit.LogLevel = lit.LogError
-			break
+
 		case "logwarning", "warning":
 			lit.LogLevel = lit.LogWarning
-			break
+
 		case "loginformational", "informational":
 			lit.LogLevel = lit.LogInformational
-			break
+
 		case "logdebug", "debug":
 			lit.LogLevel = lit.LogDebug
-			break
 		}
 
 		initializeAdjectives()
@@ -125,7 +124,7 @@ func main() {
 	// Wait here until CTRL-C or other term signal is received.
 	lit.Info("roberto is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	// Cleanly close down the Discord session.

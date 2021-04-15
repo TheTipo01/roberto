@@ -9,7 +9,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52 // indirect
 	github.com/goccy/go-json v0.4.11
 	github.com/goodsign/monday v1.0.1-0.20201007115131-c065b60ec611
-	github.com/klauspost/compress v1.11.13 // indirect
+	github.com/klauspost/compress v1.12.1 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pelletier/go-toml v1.9.0 // indirect
@@ -22,11 +22,11 @@ require (
 	github.com/valyala/fasthttp v1.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
+	golang.org/x/sys v0.0.0-20210415045647-66c3f260301c // indirect
 	golang.org/x/text v0.3.6
 	golang.org/x/tools v0.1.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	modernc.org/cc/v3 v3.32.2 // indirect
+	modernc.org/cc/v3 v3.32.3 // indirect
 	modernc.org/ccgo/v3 v3.9.1 // indirect
 	modernc.org/sqlite v1.10.2
 	modernc.org/strutil v1.1.1 // indirect
