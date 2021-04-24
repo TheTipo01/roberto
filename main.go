@@ -56,9 +56,6 @@ func init() {
 
 		// Set lit.LogLevel to the given value
 		switch strings.ToLower(viper.GetString("loglevel")) {
-		case "logerror", "error":
-			lit.LogLevel = lit.LogError
-
 		case "logwarning", "warning":
 			lit.LogLevel = lit.LogWarning
 
