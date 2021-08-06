@@ -211,7 +211,7 @@ func initializeServer(guildID string) {
 
 // Sends embed as response to an interaction
 func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
-	err := s.InteractionRespond(i, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: &discordgo.InteractionApplicationCommandResponseData{Embeds: []*discordgo.MessageEmbed{embed}}})
+	err := s.InteractionRespond(i, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: &discordgo.InteractionResponseData{Embeds: []*discordgo.MessageEmbed{embed}}})
 	if err != nil {
 		lit.Error("InteractionRespond failed: %s", err)
 		return
