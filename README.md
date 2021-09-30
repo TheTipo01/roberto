@@ -4,22 +4,24 @@
 
 Discord TTS bot
 
-Dependencies: [DCA](https://github.com/bwmarrin/dca/tree/master/cmd/dca), [ffmpeg](https://ffmpeg.org/download.html) and Loquendo Roberto SAPI voice
+## Notes
+- We now use slash commands (from release [0.6.0](https://github.com/TheTipo01/roberto/releases/tag/0.6.0))
+- Dependencies: [DCA](https://github.com/bwmarrin/dca/tree/master/cmd/dca), [ffmpeg](https://ffmpeg.org/download.html) and Loquendo Roberto SAPI voice
 
-For download, see releases.
+To download, see releases page.
 
 ## Bot commands
 
-`.say <text>` - Says text out loud
+`/say <text>` - Says text out loud
 
-`.bestemmia <n>` - Generates a bestemmia n times
+`/bestemmia <n>` - Generates a bestemmia n times
 
-`.treno <train number>` - Fakes train announcement given it's number
+`/treno <train number>` - Fakes train announcement given its number
 
-`.covid` - Says covid data out loud for current day in Italy
+`/covid` - Says covid data out loud for current day in Italy
 
-`.preghiera` - Randomly select a custom command
+`/preghiera` - Randomly select a custom command
 
-`.custom <custom command> <text>` - Creates a custom command to say text out loud. The bot will replace <god> with a random god and <dict> with a random adjective
+`/custom <custom command> <text>` - Creates a custom command to say inputted text out loud. The bot will replace <god> with a random evangelical figure and <dict> with a random adjective
 
-`.rmcustom <custom command>` - Removes a custom command
+`/rmcustom <custom command>` - Removes a custom command
