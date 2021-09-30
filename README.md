@@ -22,6 +22,8 @@ To download, see releases page.
 
 `/preghiera` - Randomly select a custom command
 
-`/custom <custom command> <text>` - Creates a custom command to say inputted text out loud. The bot will replace <god> with a random evangelical figure and <dict> with a random adjective
+`/addcustom <custom command> <text>` - Creates a custom command to say inputted text out loud. The bot will replace <god> with a random evangelical figure and <dict> with a random adjective
+
+`/custom <custom_command>` - Executes a previously created custom command
 
 `/rmcustom <custom command>` - Removes a custom command
