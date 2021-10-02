@@ -104,6 +104,18 @@ var (
 			Name:        "listcustom",
 			Description: "Listes all custom command for the server",
 		},
+		{
+			Name:        "wikipedia",
+			Description: "Says wikipedia article out lout",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "link",
+					Description: "Wikipedia article",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	// Handler
@@ -323,6 +335,27 @@ var (
 
 			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Commands", message).
 				SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*30)
+		},
+
+		// List all of the custom commands for the server
+		"wikipedia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
+			if vs != nil {
+				c := make(chan int)
+
+				article := getWikipedia(i.ApplicationCommandData().Options[0].StringValue())
+
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Wikipedia", article).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
+
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(article))
+
+				<-c
+				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				if err != nil {
+					lit.Error("InteractionResponseDelete failed: %s", err.Error())
+				}
+			}
 		},
 	}
 )
