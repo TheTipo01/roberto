@@ -104,6 +104,18 @@ var (
 			Name:        "listcustom",
 			Description: "Listes all custom command for the server",
 		},
+		{
+			Name:        "wikipedia",
+			Description: "Says wikipedia article out lout",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "link",
+					Description: "Wikipedia article",
+					Required:    true,
+				},
+			},
+		},
 	}
 
 	// Handler
@@ -131,10 +143,10 @@ var (
 			}
 
 			// If a number is given, we repeat the bestemmia n times
-			if len(i.Data.Options) > 0 {
+			if len(i.ApplicationCommandData().Options) > 0 {
 				var (
 					cont uint64
-					n    = i.Data.Options[0].UintValue()
+					n    = i.ApplicationCommandData().Options[0].UintValue()
 				)
 
 				for cont = 0; cont < n; cont++ {
@@ -189,7 +201,7 @@ var (
 		"say": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
-				text := i.Data.Options[0].StringValue()
+				text := i.ApplicationCommandData().Options[0].StringValue()
 				c := make(chan int)
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Say", text).
@@ -222,7 +234,7 @@ var (
 			if vs != nil {
 				c := make(chan int)
 
-				trainAnnounce := searchAndGetTrain(i.Data.Options[0].StringValue())
+				trainAnnounce := searchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
 				if trainAnnounce == "" {
 					trainAnnounce = "Nessun treno trovato, agagagaga!"
 				}
@@ -255,7 +267,7 @@ var (
 
 		// Adds a custom command
 		"addcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			err := addCommand(i.Data.Options[0].StringValue(), i.Data.Options[1].StringValue(), i.GuildID)
+			err := addCommand(i.ApplicationCommandData().Options[0].StringValue(), i.ApplicationCommandData().Options[1].StringValue(), i.GuildID)
 			if err != nil {
 				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", err.Error()).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
@@ -267,7 +279,7 @@ var (
 
 		// Removes a custom command
 		"rmcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			err := removeCustom(i.Data.Options[0].StringValue(), i.GuildID)
+			err := removeCustom(i.ApplicationCommandData().Options[0].StringValue(), i.GuildID)
 			if err != nil {
 				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", err.Error()).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
@@ -299,7 +311,7 @@ var (
 
 		// Plays the custom command if it exist
 		"custom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			command := i.Data.Options[0].StringValue()
+			command := i.ApplicationCommandData().Options[0].StringValue()
 			if server[i.GuildID].customCommands[command] != "" {
 				vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 				if vs != nil {
@@ -323,6 +335,27 @@ var (
 
 			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Commands", message).
 				SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*30)
+		},
+
+		// List all of the custom commands for the server
+		"wikipedia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
+			if vs != nil {
+				c := make(chan int)
+
+				article := getWikipedia(i.ApplicationCommandData().Options[0].StringValue())
+
+				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Wikipedia", article).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
+
+				playSound(s, vs.GuildID, vs.ChannelID, genAudio(article))
+
+				<-c
+				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				if err != nil {
+					lit.Error("InteractionResponseDelete failed: %s", err.Error())
+				}
+			}
 		},
 	}
 )
