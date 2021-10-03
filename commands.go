@@ -293,7 +293,7 @@ var (
 		"preghiera": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
-				text := advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", gods), "<dict>", adjectives)
+				text := emojiToDescription(advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", gods), "<dict>", adjectives))
 				c := make(chan int)
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Preghiera", text).
@@ -315,7 +315,19 @@ var (
 			if server[i.GuildID].customCommands[command] != "" {
 				vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 				if vs != nil {
-					playSound(s, vs.GuildID, vs.ChannelID, genAudio(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", gods), "<dict>", adjectives)))
+					text := emojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", gods), "<dict>", adjectives))
+					c := make(chan int)
+
+					go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Custom", text).
+						SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
+
+					playSound(s, vs.GuildID, vs.ChannelID, genAudio(text))
+
+					<-c
+					err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+					if err != nil {
+						lit.Error("InteractionResponseDelete failed: %s", err.Error())
+					}
 				}
 			} else {
 				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", "Command doesn't exist!").
@@ -343,7 +355,7 @@ var (
 			if vs != nil {
 				c := make(chan int)
 
-				article := getWikipedia(i.ApplicationCommandData().Options[0].StringValue())
+				article := emojiToDescription(getWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Wikipedia", article).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)

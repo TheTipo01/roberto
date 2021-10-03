@@ -18,9 +18,9 @@ require (
 	github.com/valyala/fasthttp v1.30.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/mod v0.5.1 // indirect
-	golang.org/x/sys v0.0.0-20211002104244-808efd93c36d // indirect
+	golang.org/x/sys v0.0.0-20211003122950-b1ebd4e1001c // indirect
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.7 // indirect
-	modernc.org/ccgo/v3 v3.12.12 // indirect
+	modernc.org/ccgo/v3 v3.12.13 // indirect
 	modernc.org/sqlite v1.13.1
 )
