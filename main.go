@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
-	"github.com/spf13/viper"
+	"github.com/kkyr/fig"
 	"io/ioutil"
 	"math/rand"
 	_ "modernc.org/sqlite"
@@ -15,6 +15,11 @@ import (
 	"syscall"
 	"time"
 )
+
+type Config struct {
+	Token    string `fig:"token" validate:"required"`
+	LogLevel string `fig:"loglevel" validate:"required"`
+}
 
 var (
 	// Discord bot token
@@ -40,48 +45,43 @@ const (
 func init() {
 	lit.LogLevel = lit.LogError
 
-	viper.SetConfigName("config")
-	viper.SetConfigType("yml")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found
-			lit.Error("Config file not found! See example_config.yml")
-			return
-		}
-	} else {
-		// Config file found
-		token = viper.GetString("token")
-
-		// Set lit.LogLevel to the given value
-		switch strings.ToLower(viper.GetString("loglevel")) {
-		case "logwarning", "warning":
-			lit.LogLevel = lit.LogWarning
-
-		case "loginformational", "informational":
-			lit.LogLevel = lit.LogInformational
-
-		case "logdebug", "debug":
-			lit.LogLevel = lit.LogDebug
-		}
-
-		initializeAdjectives()
-
-		// Initialize rand
-		rand.Seed(time.Now().Unix())
-
-		// Database
-		db, err = sql.Open(driverName, dataSourceName)
-		if err != nil {
-			lit.Error("Error opening database connection, %s", err)
-			return
-		}
-
-		execQuery(tblCustomCommands, db)
-
-		loadCustomCommands(db)
+	var cfg Config
+	err := fig.Load(&cfg, fig.File("config.yml"))
+	if err != nil {
+		lit.Error(err.Error())
+		return
 	}
+
+	// Config file found
+	token = cfg.Token
+
+	// Set lit.LogLevel to the given value
+	switch strings.ToLower(cfg.LogLevel) {
+	case "logwarning", "warning":
+		lit.LogLevel = lit.LogWarning
+
+	case "loginformational", "informational":
+		lit.LogLevel = lit.LogInformational
+
+	case "logdebug", "debug":
+		lit.LogLevel = lit.LogDebug
+	}
+
+	initializeAdjectives()
+
+	// Initialize rand
+	rand.Seed(time.Now().Unix())
+
+	// Database
+	db, err = sql.Open(driverName, dataSourceName)
+	if err != nil {
+		lit.Error("Error opening database connection, %s", err)
+		return
+	}
+
+	execQuery(tblCustomCommands, db)
+
+	loadCustomCommands(db)
 }
 
 func main() {
