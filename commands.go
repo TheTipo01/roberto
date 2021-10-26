@@ -64,7 +64,7 @@ var (
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "customCommand",
+					Name:        "custom-command",
 					Description: "Command name",
 					Required:    true,
 				},
@@ -82,7 +82,7 @@ var (
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "customCommand",
+					Name:        "custom-command",
 					Description: "Command name to remove",
 					Required:    true,
 				},
@@ -94,7 +94,7 @@ var (
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
-					Name:        "customCommand",
+					Name:        "custom-command",
 					Description: "Command name to remove",
 					Required:    true,
 				},
