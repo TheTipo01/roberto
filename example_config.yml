@@ -4,9 +4,6 @@
 #Bot token, get one from https://discord.com/developers/applications
 token: ""
 
-#Prefix for bot commands
-prefix: "."
-
 #Level of logging
 loglevel: "informational"
 

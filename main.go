@@ -19,7 +19,7 @@ import (
 type config struct {
 	Token    string `fig:"token" validate:"required"`
 	LogLevel string `fig:"loglevel" validate:"required"`
-	Voice string `fig:"voice" validate:"required"`
+	Voice    string `fig:"voice" validate:"required"`
 }
 
 var (
