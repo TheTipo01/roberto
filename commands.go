@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/TheTipo01/libRoberto"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"strings"
@@ -151,7 +152,7 @@ var (
 
 				for cont = 0; cont < n; cont++ {
 					if server[vs.GuildID].stop {
-						bstm := bestemmia()
+						bstm := libroberto.Bestemmia()
 
 						if cont == 0 {
 							go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
@@ -161,7 +162,7 @@ var (
 								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						}
 
-						playSound2(genAudio(strings.ToUpper(bstm)), vc, s)
+						playSound2(vc, s, libroberto.GenDCA(strings.ToUpper(bstm)))
 
 						<-c
 					} else {
@@ -172,12 +173,12 @@ var (
 				}
 			} else {
 				// Else, we only do the command once
-				bstm := bestemmia()
+				bstm := libroberto.Bestemmia()
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-				playSound2(genAudio(strings.ToUpper(bstm)), vc, s)
+				playSound2(vc, s, libroberto.GenDCA(strings.ToUpper(bstm)))
 				<-c
 			}
 
@@ -207,7 +208,7 @@ var (
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Say", text).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(emojiToDescription(text)))
+				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(libroberto.EmojiToDescription(text)))
 
 				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
@@ -234,7 +235,7 @@ var (
 			if vs != nil {
 				c := make(chan int)
 
-				trainAnnounce := searchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
+				trainAnnounce := libroberto.SearchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
 				if trainAnnounce == "" {
 					trainAnnounce = "Nessun treno trovato, agagagaga!"
 				}
@@ -242,7 +243,7 @@ var (
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Treno", trainAnnounce).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(trainAnnounce))
+				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(trainAnnounce))
 
 				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
@@ -256,12 +257,12 @@ var (
 		"covid": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
-				covid := getCovid()
+				covid := libroberto.GetCovid()
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Covid", covid).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, nil)
 
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(covid))
+				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(covid))
 			}
 		},
 
@@ -293,13 +294,13 @@ var (
 		"preghiera": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 			if vs != nil {
-				text := emojiToDescription(advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", gods), "<dict>", adjectives))
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				c := make(chan int)
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Preghiera", text).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(text))
+				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
 
 				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
@@ -315,13 +316,13 @@ var (
 			if server[i.GuildID].customCommands[command] != "" {
 				vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
 				if vs != nil {
-					text := emojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", gods), "<dict>", adjectives))
+					text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 					c := make(chan int)
 
 					go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Custom", text).
 						SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-					playSound(s, vs.GuildID, vs.ChannelID, genAudio(text))
+					playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
 
 					<-c
 					err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
@@ -355,12 +356,12 @@ var (
 			if vs != nil {
 				c := make(chan int)
 
-				article := emojiToDescription(getWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
+				article := libroberto.EmojiToDescription(libroberto.GetWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
 
 				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Wikipedia", article).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 
-				playSound(s, vs.GuildID, vs.ChannelID, genAudio(article))
+				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(article))
 
 				<-c
 				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)

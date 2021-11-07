@@ -1,19 +1,13 @@
 package main
 
 import (
-	"crypto/sha1"
+	"bytes"
 	"database/sql"
-	"encoding/base32"
 	"errors"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
-	"io/ioutil"
+	"github.com/goccy/go-json"
 	"math/rand"
-	"net/http"
-	"os"
-	"os/exec"
-	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -171,36 +165,6 @@ func getRand(a map[string]string) string {
 	panic("impossible")
 }
 
-// Generates a bestemmia
-func bestemmia() string {
-	s1 := gods[rand.Intn(len(gods))]
-
-	s := s1 + " " + adjectives[rand.Intn(len(adjectives))]
-
-	if s1 == gods[2] {
-		s = s[:len(s)-2] + "a"
-	}
-
-	return s
-}
-
-// Generates a DCA file starting from a string and it's UUID
-func gen(bestemmia string, uuid string) {
-	_, err := os.Stat("./temp/" + uuid + ".dca")
-
-	if err != nil {
-		switch runtime.GOOS {
-		case "linux":
-			cmd := exec.Command("/bin/bash", "gen.sh", uuid, bestemmia)
-			_ = cmd.Run()
-		case "windows":
-			cmd := exec.Command("gen.bat", uuid)
-			cmd.Stdin = strings.NewReader(bestemmia)
-			_ = cmd.Run()
-		}
-	}
-}
-
 // Initialize server for a given guildID if it's nil
 func initializeServer(guildID string) {
 	if server[guildID] == nil {
@@ -251,36 +215,19 @@ func modfyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *di
 	}
 }
 
-// genAudio generates a dca file from a string
-func genAudio(text string) string {
-	h := sha1.New()
-	h.Write([]byte(text))
-	uuid := strings.ToUpper(base32.HexEncoding.EncodeToString(h.Sum(nil)))
+// isCommandEqual compares two command by marshalling them to JSON. Yes, I know. I don't want to write recursive things.
+func isCommandEqual(c *discordgo.ApplicationCommand, v *discordgo.ApplicationCommand) bool {
+	c.Version = ""
+	c.ID = ""
+	c.ApplicationID = ""
+	c.Type = 0
+	cBytes, _ := json.Marshal(&c)
 
-	gen(text, uuid)
+	v.Version = ""
+	v.ID = ""
+	v.ApplicationID = ""
+	v.Type = 0
+	vBytes, _ := json.Marshal(&v)
 
-	return uuid + ".dca"
-}
-
-func getWikipedia(link string) string {
-	// Gets article title
-	tmp := strings.Split(link, "/")
-	title := tmp[len(tmp)-1]
-
-	// Gets wikipedia language
-	language := strings.Split(strings.TrimPrefix(link, "https://"), ".")[0]
-
-	res, err := http.Get("https://" + language + ".wikipedia.org/w/api.php?action=query&format=json&titles=" + title + "&prop=extracts&exintro&explaintext")
-	if err != nil || http.StatusOK != res.StatusCode {
-		return ""
-	}
-
-	body, _ := ioutil.ReadAll(res.Body)
-
-	out := string(body)
-	_ = res.Body.Close()
-
-	out, err = strconv.Unquote("\"" + strings.TrimSuffix(strings.Split(out, "\"extract\":\"")[1], "\"}}}}") + "\"")
-
-	return out
+	return bytes.Compare(cBytes, vBytes) == 0
 }

@@ -2,25 +2,23 @@ package main
 
 import (
 	"encoding/binary"
+	libroberto "github.com/TheTipo01/libRoberto"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"io"
-	"os"
+	"os/exec"
 	"time"
 )
 
 // playSound plays a file to the provided channel.
-func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
+func playSound(s *discordgo.Session, guildID string, channelID string, cmds []*exec.Cmd) {
 	var opuslen int16
-
-	file, err := os.Open("./temp/" + fileName)
-	if err != nil {
-		lit.Error("Error opening dca file: %s", err)
-		return
-	}
 
 	// Locks the mutex for the current server
 	server[guildID].mutex.Lock()
+
+	pipe, _ := cmds[2].StdoutPipe()
+	libroberto.CmdsStart(cmds)
 
 	// Join the provided voice channel.
 	vc, err := s.ChannelVoiceJoin(guildID, channelID, false, true)
@@ -38,7 +36,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 	for {
 		// Read opus frame length from dca file.
-		err = binary.Read(file, binary.LittleEndian, &opuslen)
+		err = binary.Read(pipe, binary.LittleEndian, &opuslen)
 
 		// If this is the end of the file, just return.
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -52,7 +50,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 
 		// Read encoded pcm from dca file.
 		InBuf := make([]byte, opuslen)
-		err = binary.Read(file, binary.LittleEndian, &InBuf)
+		err = binary.Read(pipe, binary.LittleEndian, &InBuf)
 
 		// Should not be any end of file errors
 		if err != nil {
@@ -80,8 +78,7 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 		}
 	}
 
-	// Close the file
-	_ = file.Close()
+	libroberto.CmdsWait(cmds)
 
 	// Resets the stop boolean
 	server[guildID].stop = true
@@ -101,14 +98,12 @@ func playSound(s *discordgo.Session, guildID, channelID, fileName string) {
 }
 
 // playSound2 plays a file to the provided channel given a voice connection.
-func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Session) {
+func playSound2(vc *discordgo.VoiceConnection, s *discordgo.Session, cmds []*exec.Cmd) {
 	var opuslen int16
+	var err error
 
-	file, err := os.Open("./temp/" + fileName)
-	if err != nil {
-		lit.Error("Error opening dca file: %s", err)
-		return
-	}
+	pipe, _ := cmds[2].StdoutPipe()
+	libroberto.CmdsStart(cmds)
 
 	// Start speaking.
 	_ = vc.Speaking(true)
@@ -121,7 +116,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 	for {
 		// Read opus frame length from dca file.
-		err = binary.Read(file, binary.LittleEndian, &opuslen)
+		err = binary.Read(pipe, binary.LittleEndian, &opuslen)
 
 		// If this is the end of the file, just return.
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -135,7 +130,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 		// Read encoded pcm from dca file.
 		InBuf := make([]byte, opuslen)
-		err = binary.Read(file, binary.LittleEndian, &InBuf)
+		err = binary.Read(pipe, binary.LittleEndian, &InBuf)
 
 		// Should not be any end of file errors
 		if err != nil {
@@ -160,8 +155,7 @@ func playSound2(fileName string, vc *discordgo.VoiceConnection, s *discordgo.Ses
 
 	}
 
-	// Close the file
-	_ = file.Close()
+	libroberto.CmdsWait(cmds)
 
 	// Stop speaking
 	_ = vc.Speaking(false)

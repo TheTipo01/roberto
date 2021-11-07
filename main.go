@@ -5,7 +5,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
-	"io/ioutil"
 	"math/rand"
 	_ "modernc.org/sqlite"
 	"os"
@@ -16,7 +15,7 @@ import (
 	"time"
 )
 
-type Config struct {
+type config struct {
 	Token    string `fig:"token" validate:"required"`
 	LogLevel string `fig:"loglevel" validate:"required"`
 }
@@ -26,12 +25,6 @@ var (
 	token string
 	// Server
 	server = make(map[string]*Server)
-	// Array of adjectives
-	adjectives []string
-	// Gods
-	gods = []string{"Dio", "Gesù", "Madonna"}
-	// Emoji replacer
-	emoji = emojiReplacer()
 	// DB connection
 	db *sql.DB
 )
@@ -45,7 +38,7 @@ const (
 func init() {
 	lit.LogLevel = lit.LogError
 
-	var cfg Config
+	var cfg config
 	err := fig.Load(&cfg, fig.File("config.yml"))
 	if err != nil {
 		lit.Error(err.Error())
@@ -66,8 +59,6 @@ func init() {
 	case "logdebug", "debug":
 		lit.LogLevel = lit.LogDebug
 	}
-
-	initializeAdjectives()
 
 	// Initialize rand
 	rand.Seed(time.Now().Unix())
@@ -142,6 +133,20 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 				_ = s.ApplicationCommandDelete(s.State.User.ID, "", c.ID)
 				lit.Info("Deleted unused command %s", c.Name)
 			}
+
+			// Compare commands with the ones in commands, if they are different we re-create them
+			for _, v := range commands {
+				if c.Name == v.Name {
+					if !isCommandEqual(c, v) {
+						lit.Info("Command %s changed, re-creating", v.Name)
+						_, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
+						if err != nil {
+							lit.Error("Cannot create '%v' command: %v", v.Name, err)
+						}
+					}
+					break
+				}
+			}
 		}
 	}
 
@@ -156,10 +161,4 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 func guildCreate(_ *discordgo.Session, e *discordgo.GuildCreate) {
 	initializeServer(e.Guild.ID)
-}
-
-// Reads adjectives
-func initializeAdjectives() {
-	foo, _ := ioutil.ReadFile("parole.txt")
-	adjectives = strings.Split(string(foo), "\n")
 }
