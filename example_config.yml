@@ -9,3 +9,6 @@ prefix: "."
 
 #Level of logging
 loglevel: "informational"
+
+# Voice used to generate audio files
+voice: "Roberto"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	libroberto "github.com/TheTipo01/libRoberto"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
@@ -18,6 +19,7 @@ import (
 type config struct {
 	Token    string `fig:"token" validate:"required"`
 	LogLevel string `fig:"loglevel" validate:"required"`
+	Voice string `fig:"voice" validate:"required"`
 }
 
 var (
@@ -45,7 +47,7 @@ func init() {
 		return
 	}
 
-	// Config file found
+	libroberto.Voice = cfg.Voice
 	token = cfg.Token
 
 	// Set lit.LogLevel to the given value

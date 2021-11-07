@@ -44,18 +44,11 @@ func advancedReplace(src string, toReplace string, a []string) string {
 
 // Executes a simple query given a DB
 func execQuery(query string, db *sql.DB) {
-	stm, err := db.Prepare(query)
+	_, err := db.Exec(query)
 	if err != nil {
 		lit.Error("Error preparing query, %s", err)
 		return
 	}
-
-	_, err = stm.Exec()
-	if err != nil {
-		lit.Error("Error creating table, %s", err)
-	}
-
-	_ = stm.Close()
 }
 
 // Adds a custom command to db and to the command map
@@ -71,15 +64,11 @@ func addCommand(command string, text string, guild string) error {
 	server[guild].customCommands[command] = text
 
 	// And to the database
-	stm, _ := db.Prepare("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)")
-
-	_, err := stm.Exec(guild, command, text)
+	_, err := db.Exec("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)", guild, command, text)
 	if err != nil {
 		lit.Error("Error inserting into the database, %s", err)
 		return errors.New("error inserting into the database: " + err.Error())
 	}
-
-	_ = stm.Close()
 
 	return nil
 }
@@ -92,14 +81,11 @@ func removeCustom(command string, guild string) error {
 	}
 
 	// Remove from DB
-	stm, _ := db.Prepare("DELETE FROM customCommands WHERE server=? AND command=?")
-	_, err := stm.Exec(guild, command)
+	_, err := db.Exec("DELETE FROM customCommands WHERE server=? AND command=?", guild, command)
 	if err != nil {
 		lit.Error("Error removing from the database, %s", err)
 		return errors.New("error removing from the database: " + err.Error())
 	}
-
-	_ = stm.Close()
 
 	// Remove from the map
 	delete(server[guild].customCommands, command)
@@ -145,11 +131,7 @@ func loadCustomCommands(db *sql.DB) {
 
 			server[guild].customCommands[command] = text
 		}
-
-		_ = commands.Close()
 	}
-
-	_ = guilds.Close()
 }
 
 // Returns a random value from a map of string

@@ -3,7 +3,7 @@ module roberto
 go 1.16
 
 require (
-	github.com/TheTipo01/libRoberto v0.0.0-20211107143112-0486adeecba8
+	github.com/TheTipo01/libRoberto v0.0.0-20211107172043-c2760d8fcf75
 	github.com/bwmarrin/discordgo v0.23.3-0.20211010150959-f0b7e81468f7
 	github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312
 	github.com/goccy/go-json v0.7.10
@@ -17,6 +17,6 @@ require (
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/sys v0.0.0-20211107104306-e0b2ad06fe42 // indirect
 	golang.org/x/tools v0.1.7 // indirect
-	modernc.org/ccgo/v3 v3.12.54 // indirect
+	modernc.org/ccgo/v3 v3.12.55 // indirect
 	modernc.org/sqlite v1.13.3
 )
