@@ -4,6 +4,7 @@ import (
 	"github.com/TheTipo01/libRoberto"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -148,6 +149,7 @@ var (
 				var (
 					cont uint64
 					n    = i.ApplicationCommandData().Options[0].UintValue()
+					cmds []*exec.Cmd
 				)
 
 				for cont = 0; cont < n; cont++ {
@@ -162,12 +164,16 @@ var (
 								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						}
 
-						playSound2(vc, s, libroberto.GenDCA(strings.ToUpper(bstm)))
+						cmds = libroberto.GenDCA(strings.ToUpper(bstm))
+						playSound2(vc, s, cmds)
 
 						<-c
 					} else {
 						// Resets the stop boolean
 						server[vs.GuildID].stop = true
+
+						// Kill the processes, as we don't need to wait for them to finish
+						libroberto.CmdsKill(cmds)
 						break
 					}
 				}

@@ -74,11 +74,16 @@ func playSound(s *discordgo.Session, guildID string, channelID string, cmds []*e
 				vc, _ = s.ChannelVoiceJoin(guildID, channelID, false, true)
 			}
 		} else {
+			// Kill the processes, as we don't need to wait for them to finish
+			libroberto.CmdsKill(cmds)
 			break
 		}
 	}
 
-	libroberto.CmdsWait(cmds)
+	// If the sound is skipped, we kill the processes, so this isn't needed
+	if !server[guildID].stop {
+		libroberto.CmdsWait(cmds)
+	}
 
 	// Resets the stop boolean
 	server[guildID].stop = true
