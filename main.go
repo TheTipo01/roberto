@@ -130,33 +130,38 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 
 	// Checks for unused commands and deletes them
 	if cmds, err := s.ApplicationCommands(s.State.User.ID, ""); err == nil {
-		for _, c := range cmds {
-			if commandHandlers[c.Name] == nil {
-				_ = s.ApplicationCommandDelete(s.State.User.ID, "", c.ID)
-				lit.Info("Deleted unused command %s", c.Name)
-			}
+		found := false
 
-			// Compare commands with the ones in commands, if they are different we re-create them
-			for _, v := range commands {
-				if c.Name == v.Name {
-					if !isCommandEqual(c, v) {
-						lit.Info("Command %s changed, re-creating", v.Name)
-						_, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
+		for _, l := range commands {
+			found = false
+
+			for _, o := range cmds {
+				// We compare every online command with the ones locally stored, to find if a command with the same name exists
+				if l.Name == o.Name {
+					// If the options of the command are not equal, we re-register it
+					if !isCommandEqual(l, o) {
+						lit.Info("Registering command `%s`", l.Name)
+
+						_, err = s.ApplicationCommandCreate(s.State.User.ID, "", l)
 						if err != nil {
-							lit.Error("Cannot create '%v' command: %v", v.Name, err)
+							lit.Error("Cannot create '%s' command: %s", l.Name, err)
 						}
 					}
+
+					found = true
 					break
 				}
 			}
-		}
-	}
 
-	// And add commands used
-	for _, v := range commands {
-		_, err := s.ApplicationCommandCreate(s.State.User.ID, "", v)
-		if err != nil {
-			lit.Error("Cannot create '%v' command: %v", v.Name, err)
+			// If we didn't found a match for the locally stored command, it means the command is new. We register it
+			if !found {
+				lit.Info("Registering new command `%s`", l.Name)
+
+				_, err = s.ApplicationCommandCreate(s.State.User.ID, "", l)
+				if err != nil {
+					lit.Error("Cannot create '%s' command: %s", l.Name, err)
+				}
+			}
 		}
 	}
 }
