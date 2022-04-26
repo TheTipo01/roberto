@@ -4,6 +4,8 @@
 
 Discord TTS bot
 
+[I have an instance hosted locally, if you want to try the bot out!](https://discord.com/api/oauth2/authorize?client_id=587761918865834023&permissions=3145728&scope=bot%20applications.commands)
+
 ## Notes
 - We now use slash commands (from release [0.6.0](https://github.com/TheTipo01/roberto/releases/tag/0.6.0))
 - Dependencies: [DCA](https://github.com/bwmarrin/dca/tree/master/cmd/dca), [ffmpeg](https://ffmpeg.org/download.html) and Loquendo Roberto SAPI voice
