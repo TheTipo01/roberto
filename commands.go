@@ -147,8 +147,8 @@ var (
 			// If a number is given, we repeat the bestemmia n times
 			if len(i.ApplicationCommandData().Options) > 0 {
 				var (
-					cont uint64
-					n    = i.ApplicationCommandData().Options[0].UintValue()
+					cont int64
+					n    = i.ApplicationCommandData().Options[0].IntValue()
 					cmds []*exec.Cmd
 				)
 
