@@ -177,7 +177,7 @@ func sendAndDeleteEmbedInteraction(s *discordgo.Session, embed *discordgo.Messag
 
 	time.Sleep(wait)
 
-	err := s.InteractionResponseDelete(s.State.User.ID, i)
+	err := s.InteractionResponseDelete(i)
 	if err != nil {
 		lit.Error("InteractionResponseDelete failed: %s", err)
 		return
@@ -186,7 +186,7 @@ func sendAndDeleteEmbedInteraction(s *discordgo.Session, embed *discordgo.Messag
 
 // Modify an already sent interaction
 func modfyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
-	_, err := s.InteractionResponseEdit(s.State.User.ID, i, &discordgo.WebhookEdit{Embeds: []*discordgo.MessageEmbed{embed}})
+	_, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{Embeds: &[]*discordgo.MessageEmbed{embed}})
 	if err != nil {
 		lit.Error("InteractionResponseEdit failed: %s", err)
 		return

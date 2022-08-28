@@ -189,7 +189,7 @@ var (
 			}
 
 			// Deletes interaction as we have finished
-			err = s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+			err = s.InteractionResponseDelete(i.Interaction)
 			if err != nil {
 				lit.Error("InteractionResponseDelete failed: %s", err.Error())
 			}
@@ -217,7 +217,7 @@ var (
 				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(libroberto.EmojiToDescription(text)))
 
 				<-c
-				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				err := s.InteractionResponseDelete(i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
 				}
@@ -252,7 +252,7 @@ var (
 				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(trainAnnounce))
 
 				<-c
-				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				err := s.InteractionResponseDelete(i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
 				}
@@ -309,7 +309,7 @@ var (
 				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
 
 				<-c
-				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				err := s.InteractionResponseDelete(i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
 				}
@@ -331,7 +331,7 @@ var (
 					playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
 
 					<-c
-					err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+					err := s.InteractionResponseDelete(i.Interaction)
 					if err != nil {
 						lit.Error("InteractionResponseDelete failed: %s", err.Error())
 					}
@@ -370,7 +370,7 @@ var (
 				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(article))
 
 				<-c
-				err := s.InteractionResponseDelete(s.State.User.ID, i.Interaction)
+				err := s.InteractionResponseDelete(i.Interaction)
 				if err != nil {
 					lit.Error("InteractionResponseDelete failed: %s", err.Error())
 				}
