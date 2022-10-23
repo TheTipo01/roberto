@@ -1,4 +1,4 @@
-module roberto
+module github.com/TheTipo01/roberto
 
 go 1.16
 
