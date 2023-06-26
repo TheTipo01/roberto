@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
-	"github.com/goccy/go-json"
 	"math/rand"
 	"strings"
 	"sync"
@@ -17,7 +15,7 @@ const (
 	tblCustomCommands = "CREATE TABLE IF NOT EXISTS \"customCommands\" (\"server\" VARCHAR(18) NOT NULL,\"command\" VARCHAR(50) NOT NULL,\"text\" VARCHAR(2000) NOT NULL);"
 )
 
-// findUserVoiceState finds the voicestate of a user
+// findUserVoiceState finds the voice state of a user
 func findUserVoiceState(s *discordgo.Session, userID string, guidID string) *discordgo.VoiceState {
 	for _, g := range s.State.Guilds {
 		if g.ID == guidID {
@@ -147,7 +145,7 @@ func getRand(a map[string]string) string {
 	panic("impossible")
 }
 
-// Initialize server for a given guildID if it's nil
+// Initialize server for a given guildID if its nil
 func initializeServer(guildID string) {
 	if server[guildID] == nil {
 		server[guildID] = &Server{
@@ -185,7 +183,7 @@ func sendAndDeleteEmbedInteraction(s *discordgo.Session, embed *discordgo.Messag
 }
 
 // Modify an already sent interaction
-func modfyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
+func modifyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
 	_, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{Embeds: &[]*discordgo.MessageEmbed{embed}})
 	if err != nil {
 		lit.Error("InteractionResponseEdit failed: %s", err)
@@ -195,21 +193,4 @@ func modfyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *di
 	if c != nil {
 		*c <- 1
 	}
-}
-
-// isCommandEqual compares two command by marshalling them to JSON. Yes, I know. I don't want to write recursive things.
-func isCommandEqual(c *discordgo.ApplicationCommand, v *discordgo.ApplicationCommand) bool {
-	c.Version = ""
-	c.ID = ""
-	c.ApplicationID = ""
-	c.Type = 0
-	cBytes, _ := json.Marshal(&c)
-
-	v.Version = ""
-	v.ID = ""
-	v.ApplicationID = ""
-	v.Type = 0
-	vBytes, _ := json.Marshal(&v)
-
-	return bytes.Compare(cBytes, vBytes) == 0
 }

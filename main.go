@@ -6,14 +6,12 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"github.com/kkyr/fig"
-	"math/rand"
 	_ "modernc.org/sqlite"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 )
 
 type config struct {
@@ -62,9 +60,6 @@ func init() {
 		lit.LogLevel = lit.LogDebug
 	}
 
-	// Initialize rand
-	rand.Seed(time.Now().Unix())
-
 	// Database
 	db, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -93,6 +88,7 @@ func main() {
 	// Add events handler
 	dg.AddHandler(ready)
 	dg.AddHandler(guildCreate)
+	dg.AddHandler(guildDelete)
 
 	// Add commands handler
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -111,7 +107,16 @@ func main() {
 		return
 	}
 
-	// Wait here until CTRL-C or other term signal is received.
+	// Register commands
+	lit.Info("Registering commands, this will take a while...")
+	for _, v := range commands {
+		_, err = dg.ApplicationCommandCreate(dg.State.User.ID, "", v)
+		if err != nil {
+			lit.Error("Can't register command %s: %s", v.Name, err.Error())
+		}
+	}
+
+	// Wait here until CTRL-C or another term signal is received.
 	lit.Info("roberto is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -127,45 +132,13 @@ func ready(s *discordgo.Session, _ *discordgo.Ready) {
 	if err != nil {
 		lit.Error("Can't set status, %s", err)
 	}
-
-	// Checks for unused commands and deletes them
-	if cmds, err := s.ApplicationCommands(s.State.User.ID, ""); err == nil {
-		found := false
-
-		for _, l := range commands {
-			found = false
-
-			for _, o := range cmds {
-				// We compare every online command with the ones locally stored, to find if a command with the same name exists
-				if l.Name == o.Name {
-					// If the options of the command are not equal, we re-register it
-					if !isCommandEqual(l, o) {
-						lit.Info("Registering command `%s`", l.Name)
-
-						_, err = s.ApplicationCommandCreate(s.State.User.ID, "", l)
-						if err != nil {
-							lit.Error("Cannot create '%s' command: %s", l.Name, err)
-						}
-					}
-
-					found = true
-					break
-				}
-			}
-
-			// If we didn't found a match for the locally stored command, it means the command is new. We register it
-			if !found {
-				lit.Info("Registering new command `%s`", l.Name)
-
-				_, err = s.ApplicationCommandCreate(s.State.User.ID, "", l)
-				if err != nil {
-					lit.Error("Cannot create '%s' command: %s", l.Name, err)
-				}
-			}
-		}
-	}
 }
 
-func guildCreate(_ *discordgo.Session, e *discordgo.GuildCreate) {
+func guildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 	initializeServer(e.Guild.ID)
+	ready(s, nil)
+}
+
+func guildDelete(s *discordgo.Session, _ *discordgo.GuildDelete) {
+	ready(s, nil)
 }

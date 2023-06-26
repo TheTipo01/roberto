@@ -160,7 +160,7 @@ var (
 							go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
 								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						} else {
-							go modfyInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
+							go modifyInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
 								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
 						}
 
@@ -316,7 +316,7 @@ var (
 			}
 		},
 
-		// Plays the custom command if it exist
+		// Plays the custom command if it exists
 		"custom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			command := i.ApplicationCommandData().Options[0].StringValue()
 			if server[i.GuildID].customCommands[command] != "" {
