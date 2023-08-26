@@ -1,13 +1,27 @@
 package main
 
-import "sync"
+import (
+	"github.com/TheTipo01/roberto/queue"
+	"github.com/bwmarrin/discordgo"
+	"sync/atomic"
+)
 
 // Server holds info about a guild
 type Server struct {
-	// Mutex for syncing requests
-	mutex *sync.Mutex
-	// Boolean for skipping
-	stop bool
+	// Channel for skipping
+	skip chan struct{}
 	// Custom commands
 	customCommands map[string]string
+	// Voice connection
+	vc *discordgo.VoiceConnection
+	// Voice channel
+	voiceChannel string
+	// Queue
+	queue queue.Queue
+	// Whether the job scheduler has started
+	started atomic.Bool
+	// Whether to clear the queue
+	clear atomic.Bool
+	// Guild ID
+	guildID string
 }

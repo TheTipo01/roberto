@@ -1,0 +1,117 @@
+package queue
+
+import (
+	"io"
+	"sync"
+)
+
+type Element struct {
+	// Reader to the song
+	Reader io.Reader
+	// Closer to the song
+	Closer io.Closer
+	// Function to call before playing the song
+	BeforePlay func()
+	// Function to call after playing the song
+	AfterPlay func()
+	// Whether to loop the song
+	Loop        bool
+	Type        string
+	Content     string
+	TextChannel string
+}
+
+type Queue struct {
+	queue []Element
+	rw    *sync.RWMutex
+}
+
+// NewQueue returns a new queue
+func NewQueue() Queue {
+	return Queue{queue: make([]Element, 0), rw: &sync.RWMutex{}}
+}
+
+// IsEmpty returns whether the queue is empty
+func (q *Queue) IsEmpty() bool {
+	q.rw.RLock()
+	defer q.rw.RUnlock()
+
+	return len(q.queue) < 1
+}
+
+// GetFirstElement returns a copy of the first element in the queue if it exists
+func (q *Queue) GetFirstElement() *Element {
+	q.rw.RLock()
+	defer q.rw.RUnlock()
+
+	if len(q.queue) < 1 {
+		return nil
+	}
+
+	top := q.queue[0]
+	return &top
+}
+
+// AddElements add elements to the queue
+func (q *Queue) AddElements(el ...Element) {
+	q.rw.Lock()
+	defer q.rw.Unlock()
+
+	q.queue = append(q.queue, el...)
+}
+
+// AddElementsPriority adds elements to the queue from the second position
+// This is useful for adding songs to the top of the queue
+// If the queue is empty, it will add the elements to the end of the queue
+func (q *Queue) AddElementsPriority(el ...Element) {
+	q.rw.Lock()
+	defer q.rw.Unlock()
+
+	if len(q.queue) < 1 {
+		q.queue = append(q.queue, el...)
+	} else {
+		q.queue = append(q.queue[:1], append(el, q.queue[1:]...)...)
+	}
+}
+
+// RemoveFirstElement removes the first element in the queue, if it exists
+func (q *Queue) RemoveFirstElement() {
+	q.rw.Lock()
+	defer q.rw.Unlock()
+
+	if len(q.queue) > 0 {
+		q.queue = q.queue[1:]
+	}
+}
+
+// GetAllQueue returns a copy of the queue
+func (q *Queue) GetAllQueue() []Element {
+	q.rw.RLock()
+	defer q.rw.RUnlock()
+
+	queueCopy := make([]Element, len(q.queue))
+
+	for i, el := range q.queue {
+		queueCopy[i] = el
+	}
+
+	return queueCopy
+}
+
+// Clear clears the queue
+func (q *Queue) Clear() {
+	q.rw.Lock()
+	defer q.rw.Unlock()
+
+	q.queue = make([]Element, 0)
+}
+
+// ModifyFirstElement modifies the first element in the queue if it exists
+func (q *Queue) ModifyFirstElement(f func(*Element)) {
+	q.rw.Lock()
+	defer q.rw.Unlock()
+
+	if len(q.queue) > 0 {
+		f(&q.queue[0])
+	}
+}

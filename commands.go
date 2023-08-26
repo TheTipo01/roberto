@@ -2,10 +2,8 @@ package main
 
 import (
 	"github.com/TheTipo01/libRoberto"
+	"github.com/TheTipo01/roberto/queue"
 	"github.com/bwmarrin/discordgo"
-	"github.com/bwmarrin/lit"
-	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -124,162 +122,70 @@ var (
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		// Generates random bestemmie
 		"bestemmia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs == nil {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", "You're not in a voice channel in this guild!").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
-				return
-			}
-
-			c := make(chan int)
-
-			// Locks the mutex for the current server
-			server[vs.GuildID].mutex.Lock()
-
-			// Join the provided voice channel.
-			vc, err := s.ChannelVoiceJoin(vs.GuildID, vs.ChannelID, false, true)
-			if err != nil {
-				lit.Error("Can't connect to voice channel, %s", err)
-				server[vs.GuildID].mutex.Unlock()
-				return
-			}
+			var n, j int64
 
 			// If a number is given, we repeat the bestemmia n times
 			if len(i.ApplicationCommandData().Options) > 0 {
-				var (
-					cont int64
-					n    = i.ApplicationCommandData().Options[0].IntValue()
-					cmds []*exec.Cmd
-				)
-
-				for cont = 0; cont < n; cont++ {
-					if server[vs.GuildID].stop {
-						bstm := libroberto.Bestemmia()
-
-						if cont == 0 {
-							go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-						} else {
-							go modifyInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-								SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-						}
-
-						cmds = libroberto.GenDCA(strings.ToUpper(bstm))
-						playSound2(vc, s, cmds)
-
-						<-c
-					} else {
-						// Resets the stop boolean
-						server[vs.GuildID].stop = true
-
-						// Kill the processes, as we don't need to wait for them to finish
-						libroberto.CmdsKill(cmds)
-						break
-					}
-				}
-			} else {
-				// Else, we only do the command once
-				bstm := libroberto.Bestemmia()
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Bestemmia", bstm).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-				playSound2(vc, s, libroberto.GenDCA(strings.ToUpper(bstm)))
-				<-c
+				n = int64(i.ApplicationCommandData().Options[0].Value.(float64))
 			}
 
-			// Deletes interaction as we have finished
-			err = s.InteractionResponseDelete(i.Interaction)
-			if err != nil {
-				lit.Error("InteractionResponseDelete failed: %s", err.Error())
+			bestemmie := make([]string, n)
+
+			for j = 0; j < n; j++ {
+				bestemmie[j] = libroberto.Bestemmia()
 			}
 
-			// Disconnect from the provided voice channel.
-			err = vc.Disconnect()
-			if err != nil {
-				lit.Error("Can't disconnect from voice channel, %s", err)
-			}
-
-			// Releases the mutex lock for the server
-			server[vs.GuildID].mutex.Unlock()
+			playCommand(s, i, "Bestemmia", bestemmie...)
 		},
 
 		// Says text out lout
 		"say": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs != nil {
-				text := i.ApplicationCommandData().Options[0].StringValue()
-				c := make(chan int)
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Say", text).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(libroberto.EmojiToDescription(text)))
-
-				<-c
-				err := s.InteractionResponseDelete(i.Interaction)
-				if err != nil {
-					lit.Error("InteractionResponseDelete failed: %s", err.Error())
-				}
-			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", "You're not in a voice channel in this guild!").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
-			}
+			text := i.ApplicationCommandData().Options[0].StringValue()
+			playCommand(s, i, "Say", libroberto.EmojiToDescription(text))
 		},
 
 		// Stops all commands
 		"stop": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			server[i.GuildID].stop = false
-
-			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Stop", "Stopped").
-				SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*3)
+			// Check if user is not in a voice channel
+			if findUserVoiceState(s, i.GuildID, i.Member.User.ID) != nil {
+				if server[i.GuildID].IsPlaying() {
+					server[i.GuildID].Clear()
+					sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Stop", "Stopped everything").
+						SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				} else {
+					sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "Nothing currently playing!").
+						SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				}
+			} else {
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, notInVC).
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+			}
 		},
 
 		// Fakes train announcement
 		"treno": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs != nil {
-				c := make(chan int)
-
-				trainAnnounce := libroberto.SearchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
-				if trainAnnounce == "" {
-					trainAnnounce = "Nessun treno trovato, agagagaga!"
-				}
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Treno", trainAnnounce).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(trainAnnounce))
-
-				<-c
-				err := s.InteractionResponseDelete(i.Interaction)
-				if err != nil {
-					lit.Error("InteractionResponseDelete failed: %s", err.Error())
-				}
+			trainAnnounce := libroberto.SearchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
+			if trainAnnounce == "" {
+				trainAnnounce = "Nessun treno trovato, agagagaga!"
 			}
+
+			playCommand(s, i, "Treno", trainAnnounce)
 		},
 
 		// Says covid data out lout
 		"covid": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs != nil {
-				covid := libroberto.GetCovid()
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Covid", covid).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, nil)
-
-				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(covid))
-			}
+			covid := libroberto.GetCovid()
+			playCommand(s, i, "Covid", covid)
 		},
 
 		// Adds a custom command
 		"addcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			err := addCommand(i.ApplicationCommandData().Options[0].StringValue(), i.ApplicationCommandData().Options[1].StringValue(), i.GuildID)
 			if err != nil {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", err.Error()).
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, err.Error()).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Successful", "Custom command added!").
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(successTitle, "Custom command added!").
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			}
 		},
@@ -288,31 +194,22 @@ var (
 		"rmcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			err := removeCustom(i.ApplicationCommandData().Options[0].StringValue(), i.GuildID)
 			if err != nil {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", err.Error()).
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, err.Error()).
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Successful", "Command removed successfully!").
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(successTitle, "Command removed successfully!").
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			}
 		},
 
 		// Select a random custom command
 		"preghiera": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs != nil {
+			if len(server[i.GuildID].customCommands) > 0 {
 				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
-				c := make(chan int)
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Preghiera", text).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
-
-				<-c
-				err := s.InteractionResponseDelete(i.Interaction)
-				if err != nil {
-					lit.Error("InteractionResponseDelete failed: %s", err.Error())
-				}
+				playCommand(s, i, "Preghiera", text)
+			} else {
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom").
+					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			}
 		},
 
@@ -320,24 +217,10 @@ var (
 		"custom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 			command := i.ApplicationCommandData().Options[0].StringValue()
 			if server[i.GuildID].customCommands[command] != "" {
-				vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-				if vs != nil {
-					text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
-					c := make(chan int)
-
-					go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Custom", text).
-						SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-					playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(text))
-
-					<-c
-					err := s.InteractionResponseDelete(i.Interaction)
-					if err != nil {
-						lit.Error("InteractionResponseDelete failed: %s", err.Error())
-					}
-				}
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+				playCommand(s, i, "Custom", text)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Error", "Command doesn't exist!").
+				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "Command doesn't exist!").
 					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
 			}
 		},
@@ -358,23 +241,45 @@ var (
 
 		// List all of the custom commands for the server
 		"wikipedia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			vs := findUserVoiceState(s, i.Member.User.ID, i.GuildID)
-			if vs != nil {
-				c := make(chan int)
-
-				article := libroberto.EmojiToDescription(libroberto.GetWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
-
-				go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Wikipedia", article).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, &c)
-
-				playSound(s, vs.GuildID, vs.ChannelID, libroberto.GenDCA(article))
-
-				<-c
-				err := s.InteractionResponseDelete(i.Interaction)
-				if err != nil {
-					lit.Error("InteractionResponseDelete failed: %s", err.Error())
-				}
-			}
+			article := libroberto.EmojiToDescription(libroberto.GetWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
+			playCommand(s, i, "Wikipedia", article)
 		},
 	}
 )
+
+func playCommand(s *discordgo.Session, i *discordgo.InteractionCreate, title string, content ...string) {
+	// Check if user is not in a voice channel
+	if vs := findUserVoiceState(s, i.GuildID, i.Member.User.ID); vs != nil {
+		c := make(chan struct{})
+		go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Processing", ":)").SetColor(0x7289DA).MessageEmbed, i.Interaction, c)
+
+		if joinVC(s, i.Interaction, vs.ChannelID) {
+			elements := make([]queue.Element, len(content))
+
+			for j, c := range content {
+				cmds := libroberto.GenDCA(c)
+				dcaOut, _ := cmds[2].StdoutPipe()
+
+				elements[j] = queue.Element{
+					Reader: dcaOut,
+					BeforePlay: func() {
+						libroberto.CmdsStart(cmds)
+					},
+					AfterPlay: func() {
+						libroberto.CmdsKill(cmds)
+						libroberto.CmdsWait(cmds)
+					},
+					Type:        title,
+					Content:     c,
+					TextChannel: i.ChannelID,
+				}
+			}
+
+			server[i.GuildID].AddSong(false, elements...)
+			go deleteInteraction(s, i.Interaction, c)
+		}
+	} else {
+		sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, notInVC).
+			SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+	}
+}

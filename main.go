@@ -27,12 +27,8 @@ var (
 	server = make(map[string]*Server)
 	// DB connection
 	db *sql.DB
-)
-
-// DB parameters
-const (
-	dataSourceName = "./roberto.db"
-	driverName     = "sqlite"
+	// Discord bot session
+	s *discordgo.Session
 )
 
 func init() {
@@ -89,16 +85,19 @@ func main() {
 	dg.AddHandler(ready)
 	dg.AddHandler(guildCreate)
 	dg.AddHandler(guildDelete)
+	dg.AddHandler(voiceStateUpdate)
 
 	// Add commands handler
 	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-			h(s, i)
+		if i.User == nil {
+			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+				h(s, i)
+			}
 		}
 	})
 
 	// We set the intents that we use
-	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates)
+	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates)
 
 	// Open the websocket and begin listening.
 	err = dg.Open()
@@ -106,6 +105,9 @@ func main() {
 		lit.Error("Error opening Discord session: %s", err)
 		return
 	}
+
+	// Save the session
+	s = dg
 
 	// Register commands
 	lit.Info("Registering commands, this will take a while...")
@@ -141,4 +143,23 @@ func guildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
 
 func guildDelete(s *discordgo.Session, _ *discordgo.GuildDelete) {
 	ready(s, nil)
+}
+
+// Update the voice channel when the bot is moved
+func voiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
+	// If the bot is moved to another channel
+	if v.UserID == s.State.User.ID && server[v.GuildID].IsPlaying() {
+		if v.ChannelID == "" {
+			// If the bot has been disconnected from the voice channel, reconnect it
+			var err error
+
+			server[v.GuildID].vc, err = s.ChannelVoiceJoin(v.GuildID, server[v.GuildID].voiceChannel, false, true)
+			if err != nil {
+				lit.Error("Can't join voice channel, %s", err)
+			}
+		} else {
+			// Update the voice channel
+			server[v.GuildID].voiceChannel = v.ChannelID
+		}
+	}
 }

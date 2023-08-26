@@ -1,24 +1,17 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
 	"math/rand"
 	"strings"
-	"sync"
 	"time"
 )
 
-const (
-	tblCustomCommands = "CREATE TABLE IF NOT EXISTS \"customCommands\" (\"server\" VARCHAR(18) NOT NULL,\"command\" VARCHAR(50) NOT NULL,\"text\" VARCHAR(2000) NOT NULL);"
-)
-
 // findUserVoiceState finds the voice state of a user
-func findUserVoiceState(s *discordgo.Session, userID string, guidID string) *discordgo.VoiceState {
+func findUserVoiceState(s *discordgo.Session, guildID string, userID string) *discordgo.VoiceState {
 	for _, g := range s.State.Guilds {
-		if g.ID == guidID {
+		if g.ID == guildID {
 			for _, vs := range g.VoiceStates {
 				if vs.UserID == userID {
 					return vs
@@ -40,98 +33,6 @@ func advancedReplace(src string, toReplace string, a []string) string {
 	return dst
 }
 
-// Executes a simple query given a DB
-func execQuery(query string, db *sql.DB) {
-	_, err := db.Exec(query)
-	if err != nil {
-		lit.Error("Error preparing query, %s", err)
-		return
-	}
-}
-
-// Adds a custom command to db and to the command map
-func addCommand(command string, text string, guild string) error {
-	initializeServer(guild)
-
-	// If the text is already in the map, we ignore it
-	if server[guild].customCommands[command] == text {
-		return errors.New("command already exists")
-	}
-
-	// Else, we add it to the map
-	server[guild].customCommands[command] = text
-
-	// And to the database
-	_, err := db.Exec("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)", guild, command, text)
-	if err != nil {
-		lit.Error("Error inserting into the database, %s", err)
-		return errors.New("error inserting into the database: " + err.Error())
-	}
-
-	return nil
-}
-
-// Removes a custom command from the db and from the command map
-func removeCustom(command string, guild string) error {
-
-	if server[guild].customCommands[command] == "" {
-		return errors.New("command doesn't exist")
-	}
-
-	// Remove from DB
-	_, err := db.Exec("DELETE FROM customCommands WHERE server=? AND command=?", guild, command)
-	if err != nil {
-		lit.Error("Error removing from the database, %s", err)
-		return errors.New("error removing from the database: " + err.Error())
-	}
-
-	// Remove from the map
-	delete(server[guild].customCommands, command)
-
-	return nil
-}
-
-// Loads custom command from the database
-func loadCustomCommands(db *sql.DB) {
-	var (
-		guild, command, text string
-		guilds, commands     *sql.Rows
-		err                  error
-	)
-
-	guilds, err = db.Query("SELECT server FROM customCommands GROUP BY server")
-	if err != nil {
-		lit.Error("Error querying database, %s", err)
-		return
-	}
-
-	for guilds.Next() {
-		err = guilds.Scan(&guild)
-		if err != nil {
-			lit.Error("Error scanning server from query, %s", err)
-			continue
-		}
-
-		initializeServer(guild)
-
-		commands, err = db.Query("SELECT command, text FROM customCommands WHERE server=?", guild)
-		if err != nil {
-			lit.Error("Error querying database, %s", err)
-			continue
-		}
-
-		for commands.Next() {
-			err = commands.Scan(&command, &text)
-			if err != nil {
-				lit.Error("Error scanning commands from query, %s", err)
-				continue
-			}
-
-			server[guild].customCommands[command] = text
-		}
-	}
-}
-
 // Returns a random value from a map of string
 func getRand(a map[string]string) string {
 	// produce a pseudo-random number between 0 and len(a)-1
@@ -148,16 +49,12 @@ func getRand(a map[string]string) string {
 // Initialize server for a given guildID if its nil
 func initializeServer(guildID string) {
 	if server[guildID] == nil {
-		server[guildID] = &Server{
-			mutex:          &sync.Mutex{},
-			stop:           true,
-			customCommands: make(map[string]string),
-		}
+		server[guildID] = NewServer(guildID)
 	}
 }
 
 // Sends embed as response to an interaction
-func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
+func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c chan<- struct{}) {
 	err := s.InteractionRespond(i, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: &discordgo.InteractionResponseData{Embeds: []*discordgo.MessageEmbed{embed}}})
 	if err != nil {
 		lit.Error("InteractionRespond failed: %s", err)
@@ -165,7 +62,7 @@ func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i
 	}
 
 	if c != nil {
-		*c <- 1
+		c <- struct{}{}
 	}
 }
 
@@ -182,15 +79,48 @@ func sendAndDeleteEmbedInteraction(s *discordgo.Session, embed *discordgo.Messag
 	}
 }
 
-// Modify an already sent interaction
-func modifyInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c *chan int) {
-	_, err := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{Embeds: &[]*discordgo.MessageEmbed{embed}})
+func sendEmbed(s *discordgo.Session, embed *discordgo.MessageEmbed, txtChannel string) *discordgo.Message {
+	m, err := s.ChannelMessageSendEmbed(txtChannel, embed)
 	if err != nil {
-		lit.Error("InteractionResponseEdit failed: %s", err)
-		return
+		lit.Error("MessageSendEmbed failed: %s", err)
+		return nil
 	}
 
+	return m
+}
+
+// joinVC joins the voice channel if not already joined, returns true if joined successfully
+func joinVC(s *discordgo.Session, i *discordgo.Interaction, channelID string) bool {
+	if server[i.GuildID].vc == nil {
+		// Join the voice channel
+		vc, err := s.ChannelVoiceJoin(i.GuildID, channelID, false, true)
+		if err != nil {
+			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, cantJoinVC).
+				SetColor(0x7289DA).MessageEmbed, i, time.Second*5)
+			return false
+		}
+		server[i.GuildID].vc = vc
+		server[i.GuildID].voiceChannel = channelID
+	}
+	return true
+}
+
+// Disconnects the bot from the voice channel
+func quitVC(guildID string) {
+	if server[guildID].queue.IsEmpty() && server[guildID].vc != nil {
+		_ = server[guildID].vc.Disconnect()
+		server[guildID].vc = nil
+		server[guildID].voiceChannel = ""
+	}
+}
+
+func deleteInteraction(s *discordgo.Session, i *discordgo.Interaction, c <-chan struct{}) {
 	if c != nil {
-		*c <- 1
+		<-c
+	}
+	err := s.InteractionResponseDelete(i)
+	if err != nil {
+		lit.Error("InteractionResponseDelete failed: %s", err)
+		return
 	}
 }
