@@ -110,12 +110,9 @@ func main() {
 	s = dg
 
 	// Register commands
-	lit.Info("Registering commands, this will take a while...")
-	for _, v := range commands {
-		_, err = dg.ApplicationCommandCreate(dg.State.User.ID, "", v)
-		if err != nil {
-			lit.Error("Can't register command %s: %s", v.Name, err.Error())
-		}
+	_, err = dg.ApplicationCommandBulkOverwrite(dg.State.User.ID, "", commands)
+	if err != nil {
+		lit.Error("Can't register commands, %s", err)
 	}
 
 	// Wait here until CTRL-C or another term signal is received.
