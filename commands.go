@@ -127,11 +127,13 @@ var (
 			// If a number is given, we repeat the bestemmia n times
 			if len(i.ApplicationCommandData().Options) > 0 {
 				n = int64(i.ApplicationCommandData().Options[0].Value.(float64))
+			} else {
+				n = 1
 			}
 
 			bestemmie := make([]string, n)
 
-			for j = 0; j < n; j++ {
+			for ; j < n; j++ {
 				bestemmie[j] = libroberto.Bestemmia()
 			}
 
