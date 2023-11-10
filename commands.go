@@ -235,7 +235,9 @@ var (
 				message += c + ", "
 			}
 
-			message = message[:len(message)-2]
+			if len(message) >= 2 {
+				message = message[:len(message)-2]
+			}
 
 			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Commands", message).
 				SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*30)
