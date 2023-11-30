@@ -14,10 +14,10 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
-	golang.org/x/tools v0.15.0 // indirect
+	golang.org/x/tools v0.16.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	lukechampine.com/uint128 v1.3.0 // indirect
-	modernc.org/libc v1.32.0 // indirect
+	modernc.org/libc v1.34.11 // indirect
 	modernc.org/sqlite v1.27.0
 	modernc.org/strutil v1.2.0 // indirect
 )
