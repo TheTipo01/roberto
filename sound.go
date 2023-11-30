@@ -14,7 +14,9 @@ func playSound(guildID string, el *queue.Element) bool {
 		err     error
 	)
 
-	// Start speaking.
+	if server[guildID].vc == nil {
+		return false
+	}
 	_ = server[guildID].vc.Speaking(true)
 
 	for {
