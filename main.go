@@ -123,6 +123,7 @@ func main() {
 
 	// Cleanly close down the Discord session.
 	_ = dg.Close()
+	_ = db.Close()
 }
 
 func ready(s *discordgo.Session, _ *discordgo.Ready) {
