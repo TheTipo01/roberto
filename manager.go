@@ -1,9 +1,10 @@
 package main
 
 import (
+	"sync/atomic"
+
 	"github.com/TheTipo01/roberto/queue"
 	"github.com/bwmarrin/discordgo"
-	"sync/atomic"
 )
 
 // NewServer creates a new server manager

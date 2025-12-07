@@ -1,9 +1,10 @@
 package main
 
 import (
+	"sync/atomic"
+
 	"github.com/TheTipo01/roberto/queue"
 	"github.com/bwmarrin/discordgo"
-	"sync/atomic"
 )
 
 // Server holds info about a guild

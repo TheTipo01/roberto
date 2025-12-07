@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/TheTipo01/roberto/queue"
 	"io"
+
+	"github.com/TheTipo01/roberto/queue"
 )
 
 // Plays a song in DCA format

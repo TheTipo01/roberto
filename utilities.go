@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/bwmarrin/discordgo"
-	"github.com/bwmarrin/lit"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/lit"
 )
 
 // findUserVoiceState finds the voice state of a user

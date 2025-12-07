@@ -2,16 +2,17 @@ package main
 
 import (
 	"database/sql"
-	libroberto "github.com/TheTipo01/libRoberto"
-	"github.com/bwmarrin/discordgo"
-	"github.com/bwmarrin/lit"
-	"github.com/kkyr/fig"
-	_ "modernc.org/sqlite"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+
+	libroberto "github.com/TheTipo01/libRoberto"
+	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/lit"
+	"github.com/kkyr/fig"
+	_ "modernc.org/sqlite"
 )
 
 type config struct {
