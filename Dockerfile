@@ -10,11 +10,11 @@ ARG TARGETARCH
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go mod download
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o roberto
 
-FROM scratch
+FROM alpine
+
+RUN apk add --no-cache ca-certificates ffmpeg
 
 COPY --from=build /roberto/roberto /usr/bin/
-COPY --from=build /etc/ssl/certs /etc/ssl/certs
-COPY --from=build /usr/share/ca-certificates /usr/share/ca-certificates
 COPY --from=thetipo01/dca /usr/bin/dca /usr/bin/
 
 CMD ["roberto"]
