@@ -12,7 +12,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -trimpath -ldflags 
 
 FROM alpine
 
-RUN apk add --no-cache ca-certificates ffmpeg
+RUN apk add --no-cache ca-certificates ffmpeg gcompat
 
 COPY --from=build /roberto/roberto /usr/bin/
 COPY --from=thetipo01/dca /usr/bin/dca /usr/bin/
