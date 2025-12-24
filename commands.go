@@ -284,6 +284,7 @@ func playCommand(s *discordgo.Session, i *discordgo.InteractionCreate, title str
 					queryParams := url.Values{}
 					queryParams.Set("token", restRobertoToken)
 					queryParams.Set("text", c)
+					queryParams.Set("voice", libroberto.Voice)
 
 					endpoint.RawQuery = queryParams.Encode()
 					resp, err := http.Get(endpoint.String())
