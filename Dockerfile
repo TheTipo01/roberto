@@ -15,5 +15,6 @@ FROM scratch
 COPY --from=build /roberto/roberto /usr/bin/
 COPY --from=build /etc/ssl/certs /etc/ssl/certs
 COPY --from=build /usr/share/ca-certificates /usr/share/ca-certificates
+COPY --from=thetipo01/dca /usr/bin/dca /usr/bin/
 
 CMD ["roberto"]
