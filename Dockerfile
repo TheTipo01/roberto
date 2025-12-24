@@ -3,8 +3,6 @@ FROM --platform=$BUILDPLATFORM golang:alpine AS build
 COPY . /roberto
 WORKDIR /roberto
 
-RUN apk add --no-cache ca-certificates
-
 ARG TARGETOS
 ARG TARGETARCH
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go mod download
