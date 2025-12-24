@@ -16,9 +16,11 @@ import (
 )
 
 type config struct {
-	Token    string `fig:"token" validate:"required"`
-	LogLevel string `fig:"loglevel" validate:"required"`
-	Voice    string `fig:"voice" validate:"required"`
+	Token            string `fig:"token" validate:"required"`
+	LogLevel         string `fig:"loglevel" validate:"required"`
+	Voice            string `fig:"voice" validate:"required"`
+	RestRoberto      string `fig:"restroberto"`
+	RestRobertoToken string `fig:"restrobertotoken"`
 }
 
 var (
@@ -30,6 +32,10 @@ var (
 	db *sql.DB
 	// Discord bot session
 	s *discordgo.Session
+	// Endpoint for rest roberto
+	restRoberto string
+	// Token for rest roberto
+	restRobertoToken string
 )
 
 func init() {
@@ -44,6 +50,8 @@ func init() {
 
 	libroberto.Voice = cfg.Voice
 	token = cfg.Token
+	restRoberto = cfg.RestRoberto
+	restRobertoToken = cfg.RestRobertoToken
 
 	// Set lit.LogLevel to the given value
 	switch strings.ToLower(cfg.LogLevel) {

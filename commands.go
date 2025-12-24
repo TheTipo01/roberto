@@ -1,10 +1,16 @@
 package main
 
 import (
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/TheTipo01/libRoberto"
 	"github.com/TheTipo01/roberto/queue"
 	"github.com/bwmarrin/discordgo"
-	"time"
+	"github.com/bwmarrin/lit"
 )
 
 var (
@@ -261,8 +267,36 @@ func playCommand(s *discordgo.Session, i *discordgo.InteractionCreate, title str
 			elements := make([]queue.Element, len(content))
 
 			for j, c := range content {
+				var dcaOut io.ReadCloser
 				cmds := libroberto.GenDCA(c)
-				dcaOut, _ := cmds[2].StdoutPipe()
+
+				if restRoberto != "" {
+					// Delete all the commands except the last one
+					cmds = cmds[1:3]
+					dcaOut, _ = cmds[1].StdoutPipe()
+
+					// Setup query parameters
+					endpoint, err := url.Parse(restRoberto)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					queryParams := url.Values{}
+					queryParams.Set("token", restRobertoToken)
+					queryParams.Set("text", c)
+
+					endpoint.RawQuery = queryParams.Encode()
+					resp, err := http.Get(endpoint.String())
+					if err != nil {
+						lit.Error("Error calling restRoberto: %s", err.Error())
+						continue
+					}
+
+					// Get the response and give it to the first command
+					cmds[0].Stdin = resp.Body
+				} else {
+					dcaOut, _ = cmds[2].StdoutPipe()
+				}
 
 				elements[j] = queue.Element{
 					Reader: dcaOut,

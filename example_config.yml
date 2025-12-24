@@ -9,3 +9,9 @@ loglevel: "informational"
 
 # Voice used to generate audio files
 voice: "Roberto"
+
+# REST endpoint for Roberto voice synthesis
+restroberto: "http://localhost:8087/audio"
+
+# Token for REST endpoint authentication
+restrobertotoken: "token1"
