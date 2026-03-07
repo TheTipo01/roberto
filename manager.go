@@ -39,9 +39,9 @@ func (m *Server) play() {
 	for el := m.queue.GetFirstElement(); el != nil && !m.clear.Load(); el = m.queue.GetFirstElement() {
 		// Send "Now playing" message
 		go func() {
-			msg <- sendEmbed(s, discord.NewEmbedBuilder().SetTitle(BotName).
+			msg <- sendEmbed(s, discord.NewEmbed().WithTitle(BotName).
 				AddField(el.Type, el.Content, false).
-				SetColor(0x7289DA).Build(), el.TextChannel)
+				WithColor(0x7289DA), el.TextChannel)
 		}()
 
 		if el.BeforePlay != nil {

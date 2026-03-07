@@ -5,8 +5,8 @@ go 1.25.0
 require (
 	github.com/TheTipo01/libRoberto v0.0.0-20251223203042-54136873e999
 	github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312
-	github.com/disgoorg/disgo v0.19.2
-	github.com/disgoorg/godave/golibdave v0.1.0
+	github.com/disgoorg/disgo v0.19.3-0.20260305185833-306575eac91c
+	github.com/disgoorg/godave/golibdave v0.1.1-0.20260214205329-977ec02b706f
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/kkyr/fig v0.5.0
 	modernc.org/sqlite v1.46.1

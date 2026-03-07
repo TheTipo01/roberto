@@ -5,12 +5,12 @@ github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312/go.mod h1:z4cxqo0ARxc
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/disgoorg/disgo v0.19.2 h1:9FTTnYZ5RnLX6oybPr18d9+ht2KxIMkG/+HY0ADqTbM=
-github.com/disgoorg/disgo v0.19.2/go.mod h1:rLCcf3vnlyfOTGw8ksVmq5UE5CMzBA0eeA9oeZ+N0x4=
+github.com/disgoorg/disgo v0.19.3-0.20260305185833-306575eac91c h1:niYf2VeegXbOr+NyVASFhbhBYQO+EPtCTzCs0/6kqwg=
+github.com/disgoorg/disgo v0.19.3-0.20260305185833-306575eac91c/go.mod h1:NnV63iw4lJdF1fnV0gX27XR43ZgRGqnL122svRMTgTE=
 github.com/disgoorg/godave v0.1.0 h1:3g0Zqzz+zNaxQTVLfCnl5eZKGqZk6cM/JLLbMKCtZQQ=
 github.com/disgoorg/godave v0.1.0/go.mod h1:OreAC3hpabr39bMVA+jwOVDq1EUPXH5A0XUBiZaDI1Y=
-github.com/disgoorg/godave/golibdave v0.1.0 h1:ga70vTb2pCdFgu+Jq8KteE9qLhezG5dI4H0vB/+6vBQ=
-github.com/disgoorg/godave/golibdave v0.1.0/go.mod h1:u9INYjfw/FE0Evjr3dWjaYsaVfQcX+zNf+ZNQjROt6A=
+github.com/disgoorg/godave/golibdave v0.1.1-0.20260214205329-977ec02b706f h1:TzvwS5kpeVyrmRpb5txSmP8Qf+xQFGW3qxgluk1Egt0=
+github.com/disgoorg/godave/golibdave v0.1.1-0.20260214205329-977ec02b706f/go.mod h1:u9INYjfw/FE0Evjr3dWjaYsaVfQcX+zNf+ZNQjROt6A=
 github.com/disgoorg/godave/libdave v0.1.0 h1:1HDvN9ORP23OgV4CDudol/EprgGeTOKuRvANh5eNsow=
 github.com/disgoorg/godave/libdave v0.1.0/go.mod h1:CxundbQ722MpK3vD31kaOAxbu1+cFnnEKQDqQ7rpxEM=
 github.com/disgoorg/json/v2 v2.0.0 h1:U16yy/ARK7/aEpzjjqK1b/KaqqGHozUdeVw/DViEzQI=

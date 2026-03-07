@@ -102,8 +102,8 @@ func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID sn
 		// Join the voice channel
 		err := server[guildID].vc.Open(context.TODO(), channelID, false, true)
 		if err != nil {
-			sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, cantJoinVC, false).
-				SetColor(0x7289DA).Build(), e, time.Second*5)
+			sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, cantJoinVC, false).
+				WithColor(0x7289DA), e, time.Second*5)
 			return false
 		}
 

@@ -151,15 +151,15 @@ var (
 			if findUserVoiceState(e.Client(), e.Member().GuildID, e.Member().User.ID) != nil {
 				if server[*e.GuildID()].IsPlaying() {
 					server[*e.GuildID()].Clear()
-					sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Stop", "Stopped everything", false).
-						SetColor(0x7289DA).Build(), e, time.Second*5)
+					sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField("Stop", "Stopped everything", false).
+						WithColor(0x7289DA), e, time.Second*5)
 				} else {
-					sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "Nothing currently playing!", false).
-						SetColor(0x7289DA).Build(), e, time.Second*5)
+					sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "Nothing currently playing!", false).
+						WithColor(0x7289DA), e, time.Second*5)
 				}
 			} else {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, notInVC, false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, notInVC, false).
+					WithColor(0x7289DA), e, time.Second*5)
 			}
 		},
 
@@ -183,11 +183,11 @@ var (
 		"addcustom": func(e *events.ApplicationCommandInteractionCreate) {
 			err := addCommand(e.SlashCommandInteractionData().String("custom-command"), e.SlashCommandInteractionData().String("text"), *e.GuildID())
 			if err != nil {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, err.Error(), false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, err.Error(), false).
+					WithColor(0x7289DA), e, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(successTitle, "Custom command added!", false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(successTitle, "Custom command added!", false).
+					WithColor(0x7289DA), e, time.Second*5)
 			}
 		},
 
@@ -195,11 +195,11 @@ var (
 		"rmcustom": func(e *events.ApplicationCommandInteractionCreate) {
 			err := removeCustom(e.SlashCommandInteractionData().String("custom-command"), *e.GuildID())
 			if err != nil {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, err.Error(), false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, err.Error(), false).
+					WithColor(0x7289DA), e, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(successTitle, "Command removed successfully!", false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(successTitle, "Command removed successfully!", false).
+					WithColor(0x7289DA), e, time.Second*5)
 			}
 		},
 
@@ -209,8 +209,8 @@ var (
 				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[*e.GuildID()].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Preghiera", text)
 			} else {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom", false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom", false).
+					WithColor(0x7289DA), e, time.Second*5)
 			}
 		},
 
@@ -221,8 +221,8 @@ var (
 				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[*e.GuildID()].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Custom", text)
 			} else {
-				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "Command doesn't exist!", false).
-					SetColor(0x7289DA).Build(), e, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "Command doesn't exist!", false).
+					WithColor(0x7289DA), e, time.Second*5)
 			}
 		},
 
@@ -238,8 +238,8 @@ var (
 				message = message[:len(message)-2]
 			}
 
-			sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Commands", message, false).
-				SetColor(0x7289DA).Build(), e, time.Second*30)
+			sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField("Commands", message, false).
+				WithColor(0x7289DA), e, time.Second*30)
 		},
 
 		// List all of the custom commands for the server
@@ -255,7 +255,7 @@ func playCommand(e *events.ApplicationCommandInteractionCreate, title string, co
 	// Check if user is not in a voice channel
 	if vs := findUserVoiceState(e.Client(), e.Member().GuildID, e.Member().User.ID); vs != nil {
 		c := make(chan struct{})
-		go sendEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Processing", ":)", false).SetColor(0x7289DA).Build(), e, c)
+		go sendEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField("Processing", ":)", false).WithColor(0x7289DA), e, c)
 
 		if joinVC(e, *vs.ChannelID, vs.GuildID) {
 			elements := make([]queue.Element, len(content))
@@ -312,7 +312,7 @@ func playCommand(e *events.ApplicationCommandInteractionCreate, title string, co
 			go deleteInteraction(e, c)
 		}
 	} else {
-		sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, notInVC, false).
-			SetColor(0x7289DA).Build(), e, time.Second*5)
+		sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, notInVC, false).
+			WithColor(0x7289DA), e, time.Second*5)
 	}
 }

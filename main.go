@@ -105,7 +105,7 @@ func main() {
 		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 
-	client, _ := disgo.New(token,
+	client, err := disgo.New(token,
 		bot.WithGatewayConfigOpts(
 			gateway.WithIntents(
 				gateway.IntentGuildVoiceStates,
@@ -128,6 +128,11 @@ func main() {
 
 		bot.WithLogger(logger),
 	)
+	
+	if err != nil {
+		lit.Error("Error creating bot client: %s", err)
+		return
+	}
 
 	defer client.Close(context.TODO())
 
@@ -202,8 +207,8 @@ func interactionCreate(e *events.ApplicationCommandInteractionCreate) {
 			go h(e)
 		}
 	} else {
-		go sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Error",
+		go sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField("Error",
 			"Commands are not available in DM!", false).
-			SetColor(0x7289DA).Build(), e, time.Second*15)
+			WithColor(0x7289DA), e, time.Second*15)
 	}
 }
