@@ -4,7 +4,8 @@ import (
 	"sync/atomic"
 
 	"github.com/TheTipo01/roberto/queue"
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 // Server holds info about a guild
@@ -14,9 +15,9 @@ type Server struct {
 	// Custom commands
 	customCommands map[string]string
 	// Voice connection
-	vc *discordgo.VoiceConnection
+	vc voice.Conn
 	// Voice channel
-	voiceChannel string
+	voiceChannel *snowflake.ID
 	// Queue
 	queue queue.Queue
 	// Whether the job scheduler has started
@@ -24,5 +25,5 @@ type Server struct {
 	// Whether to clear the queue
 	clear atomic.Bool
 	// Guild ID
-	guildID string
+	guildID snowflake.ID
 }

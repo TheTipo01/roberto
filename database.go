@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/bwmarrin/lit"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 // Table creation queries
@@ -27,7 +28,7 @@ func execQuery(query string, db *sql.DB) {
 }
 
 // Adds a custom command to db and to the command map
-func addCommand(command string, text string, guild string) error {
+func addCommand(command string, text string, guild snowflake.ID) error {
 	initializeServer(guild)
 
 	// If the text is already in the map, we ignore it
@@ -49,7 +50,7 @@ func addCommand(command string, text string, guild string) error {
 }
 
 // Removes a custom command from the db and from the command map
-func removeCustom(command string, guild string) error {
+func removeCustom(command string, guild snowflake.ID) error {
 
 	if server[guild].customCommands[command] == "" {
 		return errors.New("command doesn't exist")
@@ -72,6 +73,7 @@ func removeCustom(command string, guild string) error {
 func loadCustomCommands(db *sql.DB) {
 	var (
 		guild, command, text string
+		guildSnowflake       snowflake.ID
 		guilds, commands     *sql.Rows
 		err                  error
 	)
@@ -89,7 +91,9 @@ func loadCustomCommands(db *sql.DB) {
 			continue
 		}
 
-		initializeServer(guild)
+		guildSnowflake = snowflake.MustParse(guild)
+
+		initializeServer(guildSnowflake)
 
 		commands, err = db.Query("SELECT command, text FROM customCommands WHERE server=?", guild)
 		if err != nil {
@@ -104,7 +108,7 @@ func loadCustomCommands(db *sql.DB) {
 				continue
 			}
 
-			server[guild].customCommands[command] = text
+			server[guildSnowflake].customCommands[command] = text
 		}
 	}
 }

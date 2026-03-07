@@ -9,113 +9,106 @@ import (
 
 	"github.com/TheTipo01/libRoberto"
 	"github.com/TheTipo01/roberto/queue"
-	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 )
 
 var (
 	// Commands
-	commands = []*discordgo.ApplicationCommand{
-		{
+	commands = []discord.ApplicationCommandCreate{
+		discord.SlashCommandCreate{
 			Name:        "say",
 			Description: "Says text out loud",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "text",
 					Description: "Text to say out loud",
 					Required:    true,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "bestemmia",
 			Description: "Generates a bestemmia n times",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionInteger,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionInt{
 					Name:        "n",
 					Description: "Number of times to generate bestemmia",
 					Required:    false,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "treno",
 			Description: "Fakes train announcement given it's number",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "train",
 					Description: "Train number",
 					Required:    true,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "covid",
 			Description: "Says covid data out loud for current day in Italy",
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "preghiera",
 			Description: "Randomly select a custom command",
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "stop",
 			Description: "Stops every command",
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "addcustom",
 			Description: "Creates a custom command. <god> will be replace with a random god and <dict> with an adjective",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "custom-command",
 					Description: "Command name",
 					Required:    true,
 				},
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+				discord.ApplicationCommandOptionString{
 					Name:        "text",
 					Description: "Text to say out loud",
 					Required:    true,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "rmcustom",
 			Description: "Removes a custom command",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "custom-command",
 					Description: "Command name to remove",
 					Required:    true,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "custom",
 			Description: "Calls a custom command. Use /listcustom for a list",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "custom-command",
 					Description: "Command name to remove",
 					Required:    true,
 				},
 			},
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "listcustom",
 			Description: "Listes all custom command for the server",
 		},
-		{
+		discord.SlashCommandCreate{
 			Name:        "wikipedia",
 			Description: "Says wikipedia article out lout",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Type:        discordgo.ApplicationCommandOptionString,
+			Options: []discord.ApplicationCommandOption{
+				discord.ApplicationCommandOptionString{
 					Name:        "link",
 					Description: "Wikipedia article",
 					Required:    true,
@@ -125,14 +118,14 @@ var (
 	}
 
 	// Handler
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
+	commandHandlers = map[string]func(e *events.ApplicationCommandInteractionCreate){
 		// Generates random bestemmie
-		"bestemmia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			var n, j int64
+		"bestemmia": func(e *events.ApplicationCommandInteractionCreate) {
+			var n, j int
 
 			// If a number is given, we repeat the bestemmia n times
-			if len(i.ApplicationCommandData().Options) > 0 {
-				n = int64(i.ApplicationCommandData().Options[0].Value.(float64))
+			if option, ok := e.SlashCommandInteractionData().OptInt("n"); ok {
+				n = option
 			} else {
 				n = 1
 			}
@@ -143,101 +136,101 @@ var (
 				bestemmie[j] = libroberto.Bestemmia()
 			}
 
-			playCommand(s, i, "Bestemmia", bestemmie...)
+			playCommand(e, "Bestemmia", bestemmie...)
 		},
 
 		// Says text out lout
-		"say": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			text := i.ApplicationCommandData().Options[0].StringValue()
-			playCommand(s, i, "Say", libroberto.EmojiToDescription(text))
+		"say": func(e *events.ApplicationCommandInteractionCreate) {
+			text := e.SlashCommandInteractionData().String("text")
+			playCommand(e, "Say", libroberto.EmojiToDescription(text))
 		},
 
 		// Stops all commands
-		"stop": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"stop": func(e *events.ApplicationCommandInteractionCreate) {
 			// Check if user is not in a voice channel
-			if findUserVoiceState(s, i.GuildID, i.Member.User.ID) != nil {
-				if server[i.GuildID].IsPlaying() {
-					server[i.GuildID].Clear()
-					sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Stop", "Stopped everything").
-						SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+			if findUserVoiceState(e.Client(), e.Member().GuildID, e.Member().User.ID) != nil {
+				if server[*e.GuildID()].IsPlaying() {
+					server[*e.GuildID()].Clear()
+					sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Stop", "Stopped everything", false).
+						SetColor(0x7289DA).Build(), e, time.Second*5)
 				} else {
-					sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "Nothing currently playing!").
-						SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+					sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "Nothing currently playing!", false).
+						SetColor(0x7289DA).Build(), e, time.Second*5)
 				}
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, notInVC).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, notInVC, false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			}
 		},
 
 		// Fakes train announcement
-		"treno": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			trainAnnounce := libroberto.SearchAndGetTrain(i.ApplicationCommandData().Options[0].StringValue())
+		"treno": func(e *events.ApplicationCommandInteractionCreate) {
+			trainAnnounce := libroberto.SearchAndGetTrain(e.SlashCommandInteractionData().String("train"))
 			if trainAnnounce == "" {
 				trainAnnounce = "Nessun treno trovato, agagagaga!"
 			}
 
-			playCommand(s, i, "Treno", trainAnnounce)
+			playCommand(e, "Treno", trainAnnounce)
 		},
 
 		// Says covid data out lout
-		"covid": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"covid": func(e *events.ApplicationCommandInteractionCreate) {
 			covid := libroberto.GetCovid()
-			playCommand(s, i, "Covid", covid)
+			playCommand(e, "Covid", covid)
 		},
 
 		// Adds a custom command
-		"addcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			err := addCommand(i.ApplicationCommandData().Options[0].StringValue(), i.ApplicationCommandData().Options[1].StringValue(), i.GuildID)
+		"addcustom": func(e *events.ApplicationCommandInteractionCreate) {
+			err := addCommand(e.SlashCommandInteractionData().String("custom-command"), e.SlashCommandInteractionData().String("text"), *e.GuildID())
 			if err != nil {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, err.Error()).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, err.Error(), false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(successTitle, "Custom command added!").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(successTitle, "Custom command added!", false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			}
 		},
 
 		// Removes a custom command
-		"rmcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			err := removeCustom(i.ApplicationCommandData().Options[0].StringValue(), i.GuildID)
+		"rmcustom": func(e *events.ApplicationCommandInteractionCreate) {
+			err := removeCustom(e.SlashCommandInteractionData().String("custom-command"), *e.GuildID())
 			if err != nil {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, err.Error()).
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, err.Error(), false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(successTitle, "Command removed successfully!").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(successTitle, "Command removed successfully!", false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			}
 		},
 
 		// Select a random custom command
-		"preghiera": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			if len(server[i.GuildID].customCommands) > 0 {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[i.GuildID].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
-				playCommand(s, i, "Preghiera", text)
+		"preghiera": func(e *events.ApplicationCommandInteractionCreate) {
+			if len(server[*e.GuildID()].customCommands) > 0 {
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[*e.GuildID()].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+				playCommand(e, "Preghiera", text)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom", false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			}
 		},
 
 		// Plays the custom command if it exists
-		"custom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			command := i.ApplicationCommandData().Options[0].StringValue()
-			if server[i.GuildID].customCommands[command] != "" {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[i.GuildID].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
-				playCommand(s, i, "Custom", text)
+		"custom": func(e *events.ApplicationCommandInteractionCreate) {
+			command := e.SlashCommandInteractionData().String("custom-command")
+			if server[*e.GuildID()].customCommands[command] != "" {
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[*e.GuildID()].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+				playCommand(e, "Custom", text)
 			} else {
-				sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, "Command doesn't exist!").
-					SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+				sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, "Command doesn't exist!", false).
+					SetColor(0x7289DA).Build(), e, time.Second*5)
 			}
 		},
 
 		// List all of the custom commands for the server
-		"listcustom": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		"listcustom": func(e *events.ApplicationCommandInteractionCreate) {
 			message := ""
 
-			for c := range server[i.GuildID].customCommands {
+			for c := range server[*e.GuildID()].customCommands {
 				message += c + ", "
 			}
 
@@ -245,25 +238,26 @@ var (
 				message = message[:len(message)-2]
 			}
 
-			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Commands", message).
-				SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*30)
+			sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Commands", message, false).
+				SetColor(0x7289DA).Build(), e, time.Second*30)
 		},
 
 		// List all of the custom commands for the server
-		"wikipedia": func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-			article := libroberto.EmojiToDescription(libroberto.GetWikipedia(i.ApplicationCommandData().Options[0].StringValue()))
-			playCommand(s, i, "Wikipedia", article)
+		"wikipedia": func(e *events.ApplicationCommandInteractionCreate) {
+			link := e.SlashCommandInteractionData().String("link")
+			article := libroberto.EmojiToDescription(libroberto.GetWikipedia(link))
+			playCommand(e, "Wikipedia", article)
 		},
 	}
 )
 
-func playCommand(s *discordgo.Session, i *discordgo.InteractionCreate, title string, content ...string) {
+func playCommand(e *events.ApplicationCommandInteractionCreate, title string, content ...string) {
 	// Check if user is not in a voice channel
-	if vs := findUserVoiceState(s, i.GuildID, i.Member.User.ID); vs != nil {
+	if vs := findUserVoiceState(e.Client(), e.Member().GuildID, e.Member().User.ID); vs != nil {
 		c := make(chan struct{})
-		go sendEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField("Processing", ":)").SetColor(0x7289DA).MessageEmbed, i.Interaction, c)
+		go sendEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Processing", ":)", false).SetColor(0x7289DA).Build(), e, c)
 
-		if joinVC(s, i.Interaction, vs.ChannelID) {
+		if joinVC(e, *vs.ChannelID, vs.GuildID) {
 			elements := make([]queue.Element, len(content))
 
 			for j, c := range content {
@@ -310,15 +304,15 @@ func playCommand(s *discordgo.Session, i *discordgo.InteractionCreate, title str
 					},
 					Type:        title,
 					Content:     c,
-					TextChannel: i.ChannelID,
+					TextChannel: e.Channel().ID(),
 				}
 			}
 
-			server[i.GuildID].AddSong(false, elements...)
-			go deleteInteraction(s, i.Interaction, c)
+			server[vs.GuildID].AddSong(false, elements...)
+			go deleteInteraction(e, c)
 		}
 	} else {
-		sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, notInVC).
-			SetColor(0x7289DA).MessageEmbed, i.Interaction, time.Second*5)
+		sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, notInVC, false).
+			SetColor(0x7289DA).Build(), e, time.Second*5)
 	}
 }

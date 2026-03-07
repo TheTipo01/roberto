@@ -3,6 +3,8 @@ package queue
 import (
 	"io"
 	"sync"
+
+	"github.com/disgoorg/snowflake/v2"
 )
 
 type Element struct {
@@ -18,7 +20,7 @@ type Element struct {
 	Loop        bool
 	Type        string
 	Content     string
-	TextChannel string
+	TextChannel snowflake.ID
 }
 
 type Queue struct {

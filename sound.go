@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/TheTipo01/roberto/queue"
+	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 // Plays a song in DCA format
-func playSound(guildID string, el *queue.Element) bool {
+func playSound(guildID snowflake.ID, el *queue.Element) bool {
 	var (
 		opusLen int16
 		err     error
@@ -18,9 +22,12 @@ func playSound(guildID string, el *queue.Element) bool {
 	if server[guildID].vc == nil {
 		return false
 	}
-	_ = server[guildID].vc.Speaking(true)
+	_ = server[guildID].vc.SetSpeaking(context.TODO(), voice.SpeakingFlagMicrophone)
 
-	for {
+	ticker := time.NewTicker(time.Millisecond * 20)
+	defer ticker.Stop()
+
+	for ; true; <-ticker.C {
 		select {
 		case <-server[guildID].skip:
 			cleanUp(guildID, el.Closer)
@@ -45,13 +52,19 @@ func playSound(guildID string, el *queue.Element) bool {
 				return false
 			}
 
-			server[guildID].vc.OpusSend <- InBuf
+			_, err = server[guildID].vc.UDP().Write(InBuf)
+			if err != nil {
+				cleanUp(guildID, el.Closer)
+				return false
+			}
 		}
 	}
+	
+	return true
 }
 
-func cleanUp(guildID string, closer io.Closer) {
-	_ = server[guildID].vc.Speaking(false)
+func cleanUp(guildID snowflake.ID, closer io.Closer) {
+	_ = server[guildID].vc.SetSpeaking(context.TODO(), voice.SpeakingFlagNone)
 
 	if closer != nil {
 		_ = closer.Close()

@@ -1,16 +1,27 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	libroberto "github.com/TheTipo01/libRoberto"
-	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
+	"github.com/disgoorg/disgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/godave/golibdave"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/kkyr/fig"
 	_ "modernc.org/sqlite"
 )
@@ -27,15 +38,19 @@ var (
 	// Discord bot token
 	token string
 	// Server
-	server = make(map[string]*Server)
+	server = make(map[snowflake.ID]*Server)
 	// DB connection
 	db *sql.DB
 	// Discord bot session
-	s *discordgo.Session
+	s *bot.Client
 	// Endpoint for rest roberto
 	restRoberto string
 	// Token for rest roberto
 	restRobertoToken string
+	// Channel used to notify the presence updater that the guild count has changed
+	guildCountChan = make(chan struct{})
+	// BotName is the name of the bot
+	BotName string
 )
 
 func init() {
@@ -75,6 +90,8 @@ func init() {
 	execQuery(tblCustomCommands, db)
 
 	loadCustomCommands(db)
+
+	go presenceUpdater()
 }
 
 func main() {
@@ -83,45 +100,50 @@ func main() {
 		return
 	}
 
-	// Create a new Discord session using the provided bot token.
-	dg, err := discordgo.New("Bot " + token)
-	if err != nil {
-		lit.Error("Error creating Discord session: %s", err)
-		return
+	logger := slog.Default()
+	if lit.LogLevel == lit.LogDebug {
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 
-	// Add events handler
-	dg.AddHandler(ready)
-	dg.AddHandler(guildCreate)
-	dg.AddHandler(guildDelete)
-	dg.AddHandler(voiceStateUpdate)
+	client, _ := disgo.New(token,
+		bot.WithGatewayConfigOpts(
+			gateway.WithIntents(
+				gateway.IntentGuildVoiceStates,
+				gateway.IntentGuilds,
+			),
+		),
 
-	// Add commands handler
-	dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if i.User == nil {
-			if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
-				h(s, i)
-			}
-		}
-	})
+		bot.WithCacheConfigOpts(
+			cache.WithCaches(
+				cache.FlagVoiceStates,
+			),
+		),
 
-	// We set the intents that we use
-	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuilds | discordgo.IntentsGuildVoiceStates)
+		bot.WithEventListenerFunc(ready),
+		bot.WithEventListenerFunc(guildCreate),
+		bot.WithEventListenerFunc(guildDelete),
+		bot.WithEventListenerFunc(interactionCreate),
 
-	// Open the websocket and begin listening.
-	err = dg.Open()
-	if err != nil {
-		lit.Error("Error opening Discord session: %s", err)
+		bot.WithVoiceManagerConfigOpts(voice.WithDaveSessionCreateFunc(golibdave.NewSession)),
+
+		bot.WithLogger(logger),
+	)
+
+	defer client.Close(context.TODO())
+
+	if err := client.OpenGateway(context.TODO()); err != nil {
+		lit.Error("errors while connecting to gateway %s", err)
 		return
 	}
 
 	// Save the session
-	s = dg
+	s = client
 
 	// Register commands
-	_, err = dg.ApplicationCommandBulkOverwrite(dg.State.User.ID, "", commands)
+	_, err := client.Rest.SetGlobalCommands(client.ApplicationID, commands)
 	if err != nil {
-		lit.Error("Can't register commands, %s", err)
+		lit.Error("Error registering commands: %s", err)
+		return
 	}
 
 	// Wait here until CTRL-C or another term signal is received.
@@ -130,43 +152,58 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-	// Cleanly close down the Discord session.
-	_ = dg.Close()
 	_ = db.Close()
 }
 
-func ready(s *discordgo.Session, _ *discordgo.Ready) {
-	// Set the playing status.
-	err := s.UpdateGameStatus(0, "Serving "+strconv.Itoa(len(s.State.Guilds))+" guilds!")
-	if err != nil {
-		lit.Error("Can't set status, %s", err)
+// presenceUpdater updates the bot presence every time the guild count changes, with a debounce of 500ms to avoid making too many requests
+func presenceUpdater() {
+	debounceTimer := time.NewTimer(0)
+	debounceTimer.Stop()
+
+	for {
+		select {
+		case <-guildCountChan:
+			debounceTimer.Reset(500 * time.Millisecond)
+		case <-debounceTimer.C:
+			if s != nil {
+				_ = s.SetPresence(context.TODO(), gateway.WithCustomActivity("Serving "+strconv.Itoa(len(server))+" guilds!"))
+			}
+		}
 	}
 }
 
-func guildCreate(s *discordgo.Session, e *discordgo.GuildCreate) {
-	initializeServer(e.Guild.ID)
-	ready(s, nil)
+func notifyGuildCountChange() {
+	select {
+	case guildCountChan <- struct{}{}:
+	default:
+	}
 }
 
-func guildDelete(s *discordgo.Session, _ *discordgo.GuildDelete) {
-	ready(s, nil)
+func ready(e *events.Ready) {
+	notifyGuildCountChange()
+
+	BotName = e.User.Username
 }
 
-// Update the voice channel when the bot is moved
-func voiceStateUpdate(s *discordgo.Session, v *discordgo.VoiceStateUpdate) {
-	// If the bot is moved to another channel
-	if v.UserID == s.State.User.ID && server[v.GuildID].IsPlaying() {
-		if v.ChannelID == "" {
-			// If the bot has been disconnected from the voice channel, reconnect it
-			var err error
+func guildCreate(e *events.GuildReady) {
+	initializeServer(e.GuildID)
+	notifyGuildCountChange()
+}
 
-			server[v.GuildID].vc, err = s.ChannelVoiceJoin(v.GuildID, server[v.GuildID].voiceChannel, false, true)
-			if err != nil {
-				lit.Error("Can't join voice channel, %s", err)
-			}
-		} else {
-			// Update the voice channel
-			server[v.GuildID].voiceChannel = v.ChannelID
+func guildDelete(e *events.GuildLeave) {
+	notifyGuildCountChange()
+}
+
+func interactionCreate(e *events.ApplicationCommandInteractionCreate) {
+	data := e.SlashCommandInteractionData()
+	// Ignores commands from DM
+	if e.Context() == discord.InteractionContextTypeGuild {
+		if h, ok := commandHandlers[data.CommandName()]; ok {
+			go h(e)
 		}
+	} else {
+		go sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField("Error",
+			"Commands are not available in DM!", false).
+			SetColor(0x7289DA).Build(), e, time.Second*15)
 	}
 }

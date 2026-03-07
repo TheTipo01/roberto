@@ -1,26 +1,27 @@
 package main
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/bwmarrin/lit"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 )
 
-// findUserVoiceState finds the voice state of a user
-func findUserVoiceState(s *discordgo.Session, guildID string, userID string) *discordgo.VoiceState {
-	for _, g := range s.State.Guilds {
-		if g.ID == guildID {
-			for _, vs := range g.VoiceStates {
-				if vs.UserID == userID {
-					return vs
-				}
-			}
-		}
+// findUserVoiceState finds user current voice channel
+func findUserVoiceState(s *bot.Client, guildID, userID snowflake.ID) *discord.VoiceState {
+	v, found := s.Caches.VoiceState(guildID, userID)
+
+	if !found {
+		return nil
 	}
-	return nil
+
+	return &v
 }
 
 // advancedReplace returns src string with every instance of toReplace with a random item from a
@@ -48,15 +49,15 @@ func getRand(a map[string]string) string {
 }
 
 // Initialize server for a given guildID if its nil
-func initializeServer(guildID string) {
+func initializeServer(guildID snowflake.ID) {
 	if server[guildID] == nil {
 		server[guildID] = NewServer(guildID)
 	}
 }
 
 // Sends embed as response to an interaction
-func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, c chan<- struct{}) {
-	err := s.InteractionRespond(i, &discordgo.InteractionResponse{Type: discordgo.InteractionResponseChannelMessageWithSource, Data: &discordgo.InteractionResponseData{Embeds: []*discordgo.MessageEmbed{embed}}})
+func sendEmbedInteraction(embed discord.Embed, e *events.ApplicationCommandInteractionCreate, c chan<- struct{}) {
+	err := e.CreateMessage(discord.NewMessageCreate().AddEmbeds(embed))
 	if err != nil {
 		lit.Error("InteractionRespond failed: %s", err)
 		return
@@ -68,22 +69,22 @@ func sendEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i
 }
 
 // Sends and delete after three second an embed in a given channel
-func sendAndDeleteEmbedInteraction(s *discordgo.Session, embed *discordgo.MessageEmbed, i *discordgo.Interaction, wait time.Duration) {
-	sendEmbedInteraction(s, embed, i, nil)
+func sendAndDeleteEmbedInteraction(embed discord.Embed, e *events.ApplicationCommandInteractionCreate, wait time.Duration) {
+	sendEmbedInteraction(embed, e, nil)
 
 	time.Sleep(wait)
 
-	err := s.InteractionResponseDelete(i)
+	err := e.Client().Rest.DeleteInteractionResponse(e.ApplicationID(), e.Token())
 	if err != nil {
 		lit.Error("InteractionResponseDelete failed: %s", err)
 		return
 	}
 }
 
-func sendEmbed(s *discordgo.Session, embed *discordgo.MessageEmbed, txtChannel string) *discordgo.Message {
-	m, err := s.ChannelMessageSendEmbed(txtChannel, embed)
+func sendEmbed(c *bot.Client, embed discord.Embed, txtChannel snowflake.ID) *discord.Message {
+	m, err := c.Rest.CreateMessage(txtChannel, discord.NewMessageCreate().AddEmbeds(embed))
 	if err != nil {
-		lit.Error("MessageSendEmbed failed: %s", err)
+		lit.Error("sendEmbed failed: %s", err)
 		return nil
 	}
 
@@ -91,37 +92,44 @@ func sendEmbed(s *discordgo.Session, embed *discordgo.MessageEmbed, txtChannel s
 }
 
 // joinVC joins the voice channel if not already joined, returns true if joined successfully
-func joinVC(s *discordgo.Session, i *discordgo.Interaction, channelID string) bool {
-	if server[i.GuildID].vc == nil {
+func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID snowflake.ID) bool {
+	if server[guildID].vc == nil {
+		// Create the voice connection
+		server[guildID].vc = e.Client().VoiceManager.CreateConn(guildID)
+	}
+
+	if server[guildID].voiceChannel == nil {
 		// Join the voice channel
-		vc, err := s.ChannelVoiceJoin(i.GuildID, channelID, false, true)
+		err := server[guildID].vc.Open(context.TODO(), channelID, false, true)
 		if err != nil {
-			sendAndDeleteEmbedInteraction(s, NewEmbed().SetTitle(s.State.User.Username).AddField(errorTitle, cantJoinVC).
-				SetColor(0x7289DA).MessageEmbed, i, time.Second*5)
+			sendAndDeleteEmbedInteraction(discord.NewEmbedBuilder().SetTitle(BotName).AddField(errorTitle, cantJoinVC, false).
+				SetColor(0x7289DA).Build(), e, time.Second*5)
 			return false
 		}
-		server[i.GuildID].vc = vc
-		server[i.GuildID].voiceChannel = channelID
+
+		server[guildID].voiceChannel = &channelID
 	}
+
 	return true
 }
 
 // Disconnects the bot from the voice channel
-func quitVC(guildID string) {
-	if server[guildID].queue.IsEmpty() && server[guildID].vc != nil {
-		_ = server[guildID].vc.Disconnect()
+func quitVC(guildID snowflake.ID) {
+	if server[guildID].queue.IsEmpty() && server[guildID].voiceChannel != nil {
+		server[guildID].vc.Close(context.TODO())
+		server[guildID].voiceChannel = nil
 		server[guildID].vc = nil
-		server[guildID].voiceChannel = ""
 	}
 }
 
-func deleteInteraction(s *discordgo.Session, i *discordgo.Interaction, c <-chan struct{}) {
+func deleteInteraction(e *events.ApplicationCommandInteractionCreate, c <-chan struct{}) {
 	if c != nil {
 		<-c
 	}
-	err := s.InteractionResponseDelete(i)
+
+	err := e.Client().Rest.DeleteInteractionResponse(e.ApplicationID(), e.Token())
 	if err != nil {
-		lit.Error("InteractionResponseDelete failed: %s", err)
+		lit.Error("DeleteInteractionResponse failed: %s", err)
 		return
 	}
 }

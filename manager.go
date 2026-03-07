@@ -4,11 +4,12 @@ import (
 	"sync/atomic"
 
 	"github.com/TheTipo01/roberto/queue"
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 // NewServer creates a new server manager
-func NewServer(guildID string) *Server {
+func NewServer(guildID snowflake.ID) *Server {
 	return &Server{
 		skip:           make(chan struct{}),
 		guildID:        guildID,
@@ -33,14 +34,14 @@ func (m *Server) AddSong(priority bool, el ...queue.Element) {
 }
 
 func (m *Server) play() {
-	msg := make(chan *discordgo.Message)
+	msg := make(chan *discord.Message)
 
 	for el := m.queue.GetFirstElement(); el != nil && !m.clear.Load(); el = m.queue.GetFirstElement() {
 		// Send "Now playing" message
 		go func() {
-			msg <- sendEmbed(s, NewEmbed().SetTitle(s.State.User.Username).
-				AddField(el.Type, el.Content).
-				SetColor(0x7289DA).MessageEmbed, el.TextChannel)
+			msg <- sendEmbed(s, discord.NewEmbedBuilder().SetTitle(BotName).
+				AddField(el.Type, el.Content, false).
+				SetColor(0x7289DA).Build(), el.TextChannel)
 		}()
 
 		if el.BeforePlay != nil {
@@ -56,7 +57,7 @@ func (m *Server) play() {
 		// Delete it after it has been played
 		go func() {
 			if message := <-msg; message != nil {
-				_ = s.ChannelMessageDelete(message.ChannelID, message.ID)
+				_ = s.Rest.DeleteMessage(message.ChannelID, message.ID)
 			}
 		}()
 
