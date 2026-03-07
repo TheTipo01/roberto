@@ -16,7 +16,7 @@ RUN go build -trimpath -ldflags "-s -w" -o roberto
 
 FROM debian:trixie-slim
 
-RUN apt-get update && apt-get install ffmpeg -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install ffmpeg ca-certificates -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 COPY --from=thetipo01/dca /usr/bin/dca /usr/bin/
 COPY --from=build /roberto/roberto /usr/bin/
