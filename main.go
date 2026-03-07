@@ -145,7 +145,7 @@ func main() {
 	s = client
 
 	// Register commands
-	_, err := client.Rest.SetGlobalCommands(client.ApplicationID, commands)
+	_, err = client.Rest.SetGlobalCommands(client.ApplicationID, commands)
 	if err != nil {
 		lit.Error("Error registering commands: %s", err)
 		return
