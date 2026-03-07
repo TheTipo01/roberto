@@ -1,18 +1,27 @@
-FROM --platform=$BUILDPLATFORM golang:alpine AS build
+FROM golang:trixie AS build
+
+RUN apt-get update && apt-get install unzip -y
 
 COPY . /roberto
 WORKDIR /roberto
 
-ARG TARGETOS
-ARG TARGETARCH
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go mod download
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o roberto
+RUN go mod download
 
-FROM alpine
+RUN wget https://raw.githubusercontent.com/disgoorg/godave/refs/heads/master/scripts/libdave_install.sh && chmod +x libdave_install.sh
+ENV SHELL=/bin/sh
+RUN ./libdave_install.sh v1.1.0
 
-RUN apk add --no-cache ca-certificates ffmpeg gcompat
+ENV PKG_CONFIG_PATH="/root/.local/lib/pkgconfig"
+RUN go build -trimpath -ldflags "-s -w" -o roberto
 
-COPY --from=build /roberto/roberto /usr/bin/
+FROM debian:trixie-slim
+
+RUN apt-get update && apt-get install ffmpeg -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
 COPY --from=thetipo01/dca /usr/bin/dca /usr/bin/
+COPY --from=build /roberto/roberto /usr/bin/
+
+COPY --from=build /root/.local/lib /root/.local/lib
+ENV PKG_CONFIG_PATH="/root/.local/lib/pkgconfig"
 
 CMD ["roberto"]
