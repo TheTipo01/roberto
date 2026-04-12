@@ -99,8 +99,22 @@ func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID sn
 	}
 
 	if server[guildID].voiceChannel == nil {
-		// Join the voice channel
-		err := server[guildID].vc.Open(context.TODO(), channelID, false, true)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+
+		errCh := make(chan error, 1)
+		go func() {
+			// Join the voice channel
+			errCh <- server[guildID].vc.Open(ctx, channelID, false, true)
+		}()
+
+		var err error
+		select {
+		case err = <-errCh:
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
+
 		if err != nil {
 			sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, cantJoinVC, false).
 				WithColor(0x7289DA), e, time.Second*5)
