@@ -20,9 +20,9 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
-	"github.com/disgoorg/godave/golibdave"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/kkyr/fig"
+	"github.com/thomas-vilte/dave-go/session"
 	_ "modernc.org/sqlite"
 )
 
@@ -124,11 +124,11 @@ func main() {
 		bot.WithEventListenerFunc(guildDelete),
 		bot.WithEventListenerFunc(interactionCreate),
 
-		bot.WithVoiceManagerConfigOpts(voice.WithDaveSessionCreateFunc(golibdave.NewSession)),
+		bot.WithVoiceManagerConfigOpts(voice.WithDaveSessionCreateFunc(session.New)),
 
 		bot.WithLogger(logger),
 	)
-	
+
 	if err != nil {
 		lit.Error("Error creating bot client: %s", err)
 		return
@@ -195,7 +195,7 @@ func guildCreate(e *events.GuildReady) {
 	notifyGuildCountChange()
 }
 
-func guildDelete(e *events.GuildLeave) {
+func guildDelete(_ *events.GuildLeave) {
 	notifyGuildCountChange()
 }
 
