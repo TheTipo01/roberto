@@ -10,7 +10,7 @@ Discord TTS bot
 
 - We now use slash commands (from release [0.6.0](https://github.com/TheTipo01/roberto/releases/tag/0.6.0))
 - Dependencies: [DCA](https://github.com/bwmarrin/dca/tree/master/cmd/dca), [ffmpeg](https://ffmpeg.org/download.html),
-  Loquendo Roberto SAPI voice and [balcon.exe](http://cross-plus-a.com/bconsole.htm)
+  Loquendo Roberto SAPI voice, [balcon.exe](http://cross-plus-a.com/bconsole.htm) (if you don't run [restRoberto](https://github.com/TheTipo01/restRoberto) on another machine) and [libdave](https://github.com/disgoorg/godave#libdave-installation)
 
 To download, see the releases page.
 

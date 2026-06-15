@@ -21,6 +21,15 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Download and run libdave installation script
+        env:
+          SHELL: /bin/sh
+        run: |
+          wget https://raw.githubusercontent.com/disgoorg/godave/5e485dc29cde1d4664282fe2f47c841e032833b3/scripts/libdave_install.sh
+          chmod +x libdave_install.sh
+          ./libdave_install.sh v1.1.0
+          rm libdave_install.sh
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
         with:
