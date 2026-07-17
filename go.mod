@@ -6,7 +6,7 @@ require (
 	github.com/TheTipo01/libRoberto v0.0.0-20251223203042-54136873e999
 	github.com/bwmarrin/lit v0.0.0-20190813132558-fd4b44871312
 	github.com/disgoorg/disgo v0.19.6
-	github.com/disgoorg/godave/golibdave v0.2.0
+	github.com/disgoorg/godave/golibdave v0.3.0
 	github.com/disgoorg/snowflake/v2 v2.0.4-0.20250223124221-0e6fdabd91cc
 	github.com/kkyr/fig v0.5.0
 	modernc.org/sqlite v1.54.0
@@ -38,7 +38,7 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.74.1 // indirect
+	modernc.org/libc v1.74.2 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
