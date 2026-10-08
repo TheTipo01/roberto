@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/TheTipo01/roberto/queue"
@@ -14,6 +15,8 @@ type Server struct {
 	skip chan struct{}
 	// Custom commands
 	customCommands map[string]string
+	// Mutex guarding customCommands
+	customCommandsMutex sync.RWMutex
 	// Voice connection
 	vc voice.Conn
 	// Voice channel

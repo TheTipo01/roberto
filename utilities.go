@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/lit"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
@@ -87,7 +87,7 @@ func guildCount() int {
 func sendEmbedInteraction(embed discord.Embed, e *events.ApplicationCommandInteractionCreate, c chan<- struct{}) {
 	err := e.CreateMessage(discord.NewMessageCreate().AddEmbeds(embed))
 	if err != nil {
-		lit.Error("InteractionRespond failed: %s", err)
+		slog.Error("InteractionRespond failed", "error", err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func sendAndDeleteEmbedInteraction(embed discord.Embed, e *events.ApplicationCom
 
 	err := e.Client().Rest.DeleteInteractionResponse(e.ApplicationID(), e.Token())
 	if err != nil {
-		lit.Error("InteractionResponseDelete failed: %s", err)
+		slog.Error("InteractionResponseDelete failed", "error", err)
 		return
 	}
 }
@@ -112,7 +112,7 @@ func sendAndDeleteEmbedInteraction(embed discord.Embed, e *events.ApplicationCom
 func sendEmbed(c *bot.Client, embed discord.Embed, txtChannel snowflake.ID) *discord.Message {
 	m, err := c.Rest.CreateMessage(txtChannel, discord.NewMessageCreate().AddEmbeds(embed))
 	if err != nil {
-		lit.Error("sendEmbed failed: %s", err)
+		slog.Error("sendEmbed failed", "error", err)
 		return nil
 	}
 
@@ -175,7 +175,7 @@ func deleteInteraction(e *events.ApplicationCommandInteractionCreate, c <-chan s
 
 	err := e.Client().Rest.DeleteInteractionResponse(e.ApplicationID(), e.Token())
 	if err != nil {
-		lit.Error("DeleteInteractionResponse failed: %s", err)
+		slog.Error("DeleteInteractionResponse failed", "error", err)
 		return
 	}
 }

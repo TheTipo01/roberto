@@ -3,13 +3,13 @@ package main
 import (
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/TheTipo01/libRoberto"
 	"github.com/TheTipo01/roberto/queue"
-	"github.com/bwmarrin/lit"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 )
@@ -205,8 +205,9 @@ var (
 
 		// Select a random custom command
 		"preghiera": func(e *events.ApplicationCommandInteractionCreate) {
-			if len(getServer(*e.GuildID()).customCommands) > 0 {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(getServer(*e.GuildID()).customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+			srv := getServer(*e.GuildID())
+			if srv.CustomCommandsCount() > 0 {
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(srv.GetCustomCommands()), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Preghiera", text)
 			} else {
 				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom", false).
@@ -217,8 +218,8 @@ var (
 		// Plays the custom command if it exists
 		"custom": func(e *events.ApplicationCommandInteractionCreate) {
 			command := e.SlashCommandInteractionData().String("custom-command")
-			if getServer(*e.GuildID()).customCommands[command] != "" {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getServer(*e.GuildID()).customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+			if text, ok := getServer(*e.GuildID()).GetCustomCommand(command); ok {
+				text = libroberto.EmojiToDescription(advancedReplace(advancedReplace(text, "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Custom", text)
 			} else {
 				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "Command doesn't exist!", false).
@@ -230,7 +231,7 @@ var (
 		"listcustom": func(e *events.ApplicationCommandInteractionCreate) {
 			message := ""
 
-			for c := range getServer(*e.GuildID()).customCommands {
+			for _, c := range getServer(*e.GuildID()).ListCustomCommands() {
 				message += c + ", "
 			}
 
@@ -283,7 +284,7 @@ func playCommand(e *events.ApplicationCommandInteractionCreate, title string, co
 					endpoint.RawQuery = queryParams.Encode()
 					resp, err := http.Get(endpoint.String())
 					if err != nil {
-						lit.Error("Error calling restRoberto: %s", err.Error())
+						slog.Error("error calling restRoberto", "error", err)
 						continue
 					}
 

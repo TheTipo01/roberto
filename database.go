@@ -3,7 +3,8 @@ package main
 import (
 	"database/sql"
 	"errors"
-	"github.com/bwmarrin/lit"
+	"log/slog"
+
 	"github.com/disgoorg/snowflake/v2"
 )
 
@@ -22,7 +23,7 @@ const (
 func execQuery(query string, db *sql.DB) {
 	_, err := db.Exec(query)
 	if err != nil {
-		lit.Error("Error preparing query, %s", err)
+		slog.Error("error preparing query", "error", err)
 		return
 	}
 }
@@ -32,17 +33,17 @@ func addCommand(command string, text string, guild snowflake.ID) error {
 	srv := getServer(guild)
 
 	// If the text is already in the map, we ignore it
-	if srv.customCommands[command] == text {
+	if existing, ok := srv.GetCustomCommand(command); ok && existing == text {
 		return errors.New("command already exists")
 	}
 
 	// Else, we add it to the map
-	srv.customCommands[command] = text
+	srv.SetCustomCommand(command, text)
 
 	// And to the database
 	_, err := db.Exec("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)", guild, command, text)
 	if err != nil {
-		lit.Error("Error inserting into the database, %s", err)
+		slog.Error("error inserting into the database", "error", err)
 		return errors.New("error inserting into the database: " + err.Error())
 	}
 
@@ -53,19 +54,19 @@ func addCommand(command string, text string, guild snowflake.ID) error {
 func removeCustom(command string, guild snowflake.ID) error {
 	srv := getServer(guild)
 
-	if srv.customCommands[command] == "" {
+	if _, ok := srv.GetCustomCommand(command); !ok {
 		return errors.New("command doesn't exist")
 	}
 
 	// Remove from DB
 	_, err := db.Exec("DELETE FROM customCommands WHERE server=? AND command=?", guild, command)
 	if err != nil {
-		lit.Error("Error removing from the database, %s", err)
+		slog.Error("error removing from the database", "error", err)
 		return errors.New("error removing from the database: " + err.Error())
 	}
 
 	// Remove from the map
-	delete(srv.customCommands, command)
+	srv.DeleteCustomCommand(command)
 
 	return nil
 }
@@ -81,14 +82,14 @@ func loadCustomCommands(db *sql.DB) {
 
 	guilds, err = db.Query("SELECT server FROM customCommands GROUP BY server")
 	if err != nil {
-		lit.Error("Error querying database, %s", err)
+		slog.Error("error querying database", "error", err)
 		return
 	}
 
 	for guilds.Next() {
 		err = guilds.Scan(&guild)
 		if err != nil {
-			lit.Error("Error scanning server from query, %s", err)
+			slog.Error("error scanning server from query", "error", err)
 			continue
 		}
 
@@ -98,18 +99,18 @@ func loadCustomCommands(db *sql.DB) {
 
 		commands, err = db.Query("SELECT command, text FROM customCommands WHERE server=?", guild)
 		if err != nil {
-			lit.Error("Error querying database, %s", err)
+			slog.Error("error querying database", "error", err)
 			continue
 		}
 
 		for commands.Next() {
 			err = commands.Scan(&command, &text)
 			if err != nil {
-				lit.Error("Error scanning commands from query, %s", err)
+				slog.Error("error scanning commands from query", "error", err)
 				continue
 			}
 
-			srv.customCommands[command] = text
+			srv.SetCustomCommand(command, text)
 		}
 	}
 }

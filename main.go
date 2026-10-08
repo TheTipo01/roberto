@@ -13,7 +13,6 @@ import (
 	"time"
 
 	libroberto "github.com/TheTipo01/libRoberto"
-	"github.com/bwmarrin/lit"
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/cache"
@@ -56,37 +55,50 @@ var (
 	BotName string
 )
 
+// parseLogLevel maps a config loglevel value to a slog.Level
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "logwarning", "warning":
+		return slog.LevelWarn
+
+	case "loginformational", "informational":
+		return slog.LevelInfo
+
+	case "logdebug", "debug":
+		return slog.LevelDebug
+
+	default:
+		return slog.LevelError
+	}
+}
+
+// setLogger configures the default logger, writing to stdout at the given level
+func setLogger(logLevel string) {
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: parseLogLevel(logLevel)})))
+}
+
 func init() {
-	lit.LogLevel = lit.LogError
+	// Log only errors until the configuration is loaded
+	setLogger("error")
 
 	var cfg config
 	err := fig.Load(&cfg, fig.File("config.yml"))
 	if err != nil {
-		lit.Error(err.Error())
+		slog.Error("error loading config", "error", err)
 		return
 	}
+
+	setLogger(cfg.LogLevel)
 
 	libroberto.Voice = cfg.Voice
 	token = cfg.Token
 	restRoberto = cfg.RestRoberto
 	restRobertoToken = cfg.RestRobertoToken
 
-	// Set lit.LogLevel to the given value
-	switch strings.ToLower(cfg.LogLevel) {
-	case "logwarning", "warning":
-		lit.LogLevel = lit.LogWarning
-
-	case "loginformational", "informational":
-		lit.LogLevel = lit.LogInformational
-
-	case "logdebug", "debug":
-		lit.LogLevel = lit.LogDebug
-	}
-
 	// Database
 	db, err = sql.Open(driverName, dataSourceName)
 	if err != nil {
-		lit.Error("Error opening database connection, %s", err)
+		slog.Error("error opening database connection", "error", err)
 		return
 	}
 
@@ -99,13 +111,8 @@ func init() {
 
 func main() {
 	if token == "" {
-		lit.Error("No token provided. Please modify config.yml")
+		slog.Error("no token provided, please modify config.yml")
 		return
-	}
-
-	logger := slog.Default()
-	if lit.LogLevel == lit.LogDebug {
-		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 
 	client, err := disgo.New(token,
@@ -130,18 +137,18 @@ func main() {
 
 		bot.WithVoiceManagerConfigOpts(voice.WithDaveSessionCreateFunc(golibdave.NewSession)),
 
-		bot.WithLogger(logger),
+		bot.WithLogger(slog.Default()),
 	)
 
 	if err != nil {
-		lit.Error("Error creating bot client: %s", err)
+		slog.Error("error creating bot client", "error", err)
 		return
 	}
 
 	defer client.Close(context.TODO())
 
 	if err := client.OpenGateway(context.TODO()); err != nil {
-		lit.Error("errors while connecting to gateway %s", err)
+		slog.Error("errors while connecting to gateway", "error", err)
 		return
 	}
 
@@ -151,12 +158,12 @@ func main() {
 	// Register commands
 	_, err = client.Rest.SetGlobalCommands(client.ApplicationID, commands)
 	if err != nil {
-		lit.Error("Error registering commands: %s", err)
+		slog.Error("error registering commands", "error", err)
 		return
 	}
 
 	// Wait here until CTRL-C or another term signal is received.
-	lit.Info("roberto is now running. Press CTRL-C to exit.")
+	slog.Info("roberto is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
