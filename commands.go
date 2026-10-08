@@ -149,8 +149,8 @@ var (
 		"stop": func(e *events.ApplicationCommandInteractionCreate) {
 			// Check if user is not in a voice channel
 			if findUserVoiceState(e.Client(), e.Member().GuildID, e.Member().User.ID) != nil {
-				if server[*e.GuildID()].IsPlaying() {
-					server[*e.GuildID()].Clear()
+				if getServer(*e.GuildID()).IsPlaying() {
+					getServer(*e.GuildID()).Clear()
 					sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField("Stop", "Stopped everything", false).
 						WithColor(0x7289DA), e, time.Second*5)
 				} else {
@@ -205,8 +205,8 @@ var (
 
 		// Select a random custom command
 		"preghiera": func(e *events.ApplicationCommandInteractionCreate) {
-			if len(server[*e.GuildID()].customCommands) > 0 {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(server[*e.GuildID()].customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+			if len(getServer(*e.GuildID()).customCommands) > 0 {
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getRand(getServer(*e.GuildID()).customCommands), "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Preghiera", text)
 			} else {
 				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "No custom commands available in this server! Add some with /addcustom", false).
@@ -217,8 +217,8 @@ var (
 		// Plays the custom command if it exists
 		"custom": func(e *events.ApplicationCommandInteractionCreate) {
 			command := e.SlashCommandInteractionData().String("custom-command")
-			if server[*e.GuildID()].customCommands[command] != "" {
-				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(server[*e.GuildID()].customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
+			if getServer(*e.GuildID()).customCommands[command] != "" {
+				text := libroberto.EmojiToDescription(advancedReplace(advancedReplace(getServer(*e.GuildID()).customCommands[command], "<god>", libroberto.Gods), "<dict>", libroberto.Adjectives))
 				playCommand(e, "Custom", text)
 			} else {
 				sendAndDeleteEmbedInteraction(discord.NewEmbed().WithTitle(BotName).AddField(errorTitle, "Command doesn't exist!", false).
@@ -230,7 +230,7 @@ var (
 		"listcustom": func(e *events.ApplicationCommandInteractionCreate) {
 			message := ""
 
-			for c := range server[*e.GuildID()].customCommands {
+			for c := range getServer(*e.GuildID()).customCommands {
 				message += c + ", "
 			}
 
@@ -308,7 +308,7 @@ func playCommand(e *events.ApplicationCommandInteractionCreate, title string, co
 				}
 			}
 
-			server[vs.GuildID].AddSong(false, elements...)
+			getServer(vs.GuildID).AddSong(false, elements...)
 			go deleteInteraction(e, c)
 		}
 	} else {

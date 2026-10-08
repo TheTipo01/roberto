@@ -19,17 +19,19 @@ func playSound(guildID snowflake.ID, el *queue.Element) bool {
 		err     error
 	)
 
-	if server[guildID].vc == nil {
+	srv := getServer(guildID)
+
+	if srv.vc == nil {
 		return false
 	}
-	_ = server[guildID].vc.SetSpeaking(context.TODO(), voice.SpeakingFlagMicrophone)
+	_ = srv.vc.SetSpeaking(context.TODO(), voice.SpeakingFlagMicrophone)
 
 	ticker := time.NewTicker(time.Millisecond * 20)
 	defer ticker.Stop()
 
 	for ; true; <-ticker.C {
 		select {
-		case <-server[guildID].skip:
+		case <-srv.skip:
 			cleanUp(guildID, el.Closer)
 			return true
 		default:
@@ -52,19 +54,21 @@ func playSound(guildID snowflake.ID, el *queue.Element) bool {
 				return false
 			}
 
-			_, err = server[guildID].vc.UDP().Write(InBuf)
+			_, err = srv.vc.UDP().Write(InBuf)
 			if err != nil {
 				cleanUp(guildID, el.Closer)
 				return false
 			}
 		}
 	}
-	
+
 	return true
 }
 
 func cleanUp(guildID snowflake.ID, closer io.Closer) {
-	_ = server[guildID].vc.SetSpeaking(context.TODO(), voice.SpeakingFlagNone)
+	srv := getServer(guildID)
+
+	_ = srv.vc.SetSpeaking(context.TODO(), voice.SpeakingFlagNone)
 
 	if closer != nil {
 		_ = closer.Close()

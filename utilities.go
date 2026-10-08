@@ -48,11 +48,39 @@ func getRand(a map[string]string) string {
 	panic("impossible")
 }
 
+// getServer returns the server manager for the given guild, creating it if it
+// doesn't exist yet. It is safe to call concurrently from multiple goroutines.
+func getServer(guildID snowflake.ID) *Server {
+	serverMutex.RLock()
+	srv := server[guildID]
+	serverMutex.RUnlock()
+
+	if srv != nil {
+		return srv
+	}
+
+	serverMutex.Lock()
+	defer serverMutex.Unlock()
+
+	if srv = server[guildID]; srv == nil {
+		srv = NewServer(guildID)
+		server[guildID] = srv
+	}
+
+	return srv
+}
+
 // Initialize server for a given guildID if its nil
 func initializeServer(guildID snowflake.ID) {
-	if server[guildID] == nil {
-		server[guildID] = NewServer(guildID)
-	}
+	getServer(guildID)
+}
+
+// guildCount returns the number of guilds currently tracked
+func guildCount() int {
+	serverMutex.RLock()
+	defer serverMutex.RUnlock()
+
+	return len(server)
 }
 
 // Sends embed as response to an interaction
@@ -93,19 +121,21 @@ func sendEmbed(c *bot.Client, embed discord.Embed, txtChannel snowflake.ID) *dis
 
 // joinVC joins the voice channel if not already joined, returns true if joined successfully
 func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID snowflake.ID) bool {
-	if server[guildID].vc == nil {
+	srv := getServer(guildID)
+
+	if srv.vc == nil {
 		// Create the voice connection
-		server[guildID].vc = e.Client().VoiceManager.CreateConn(guildID)
+		srv.vc = e.Client().VoiceManager.CreateConn(guildID)
 	}
 
-	if server[guildID].voiceChannel == nil {
+	if srv.voiceChannel == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
 
 		errCh := make(chan error, 1)
 		go func() {
 			// Join the voice channel
-			errCh <- server[guildID].vc.Open(ctx, channelID, false, true)
+			errCh <- srv.vc.Open(ctx, channelID, false, true)
 		}()
 
 		var err error
@@ -121,7 +151,7 @@ func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID sn
 			return false
 		}
 
-		server[guildID].voiceChannel = &channelID
+		srv.voiceChannel = &channelID
 	}
 
 	return true
@@ -129,10 +159,12 @@ func joinVC(e *events.ApplicationCommandInteractionCreate, channelID, guildID sn
 
 // Disconnects the bot from the voice channel
 func quitVC(guildID snowflake.ID) {
-	if server[guildID].queue.IsEmpty() && server[guildID].voiceChannel != nil {
-		server[guildID].vc.Close(context.TODO())
-		server[guildID].voiceChannel = nil
-		server[guildID].vc = nil
+	srv := getServer(guildID)
+
+	if srv.queue.IsEmpty() && srv.voiceChannel != nil {
+		srv.vc.Close(context.TODO())
+		srv.voiceChannel = nil
+		srv.vc = nil
 	}
 }
 

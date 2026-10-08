@@ -29,15 +29,15 @@ func execQuery(query string, db *sql.DB) {
 
 // Adds a custom command to db and to the command map
 func addCommand(command string, text string, guild snowflake.ID) error {
-	initializeServer(guild)
+	srv := getServer(guild)
 
 	// If the text is already in the map, we ignore it
-	if server[guild].customCommands[command] == text {
+	if srv.customCommands[command] == text {
 		return errors.New("command already exists")
 	}
 
 	// Else, we add it to the map
-	server[guild].customCommands[command] = text
+	srv.customCommands[command] = text
 
 	// And to the database
 	_, err := db.Exec("INSERT INTO customCommands (server, command, text) VALUES(?, ?, ?)", guild, command, text)
@@ -51,8 +51,9 @@ func addCommand(command string, text string, guild snowflake.ID) error {
 
 // Removes a custom command from the db and from the command map
 func removeCustom(command string, guild snowflake.ID) error {
+	srv := getServer(guild)
 
-	if server[guild].customCommands[command] == "" {
+	if srv.customCommands[command] == "" {
 		return errors.New("command doesn't exist")
 	}
 
@@ -64,7 +65,7 @@ func removeCustom(command string, guild snowflake.ID) error {
 	}
 
 	// Remove from the map
-	delete(server[guild].customCommands, command)
+	delete(srv.customCommands, command)
 
 	return nil
 }
@@ -93,7 +94,7 @@ func loadCustomCommands(db *sql.DB) {
 
 		guildSnowflake = snowflake.MustParse(guild)
 
-		initializeServer(guildSnowflake)
+		srv := getServer(guildSnowflake)
 
 		commands, err = db.Query("SELECT command, text FROM customCommands WHERE server=?", guild)
 		if err != nil {
@@ -108,7 +109,7 @@ func loadCustomCommands(db *sql.DB) {
 				continue
 			}
 
-			server[guildSnowflake].customCommands[command] = text
+			srv.customCommands[command] = text
 		}
 	}
 }

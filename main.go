@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -39,6 +40,8 @@ var (
 	token string
 	// Server
 	server = make(map[snowflake.ID]*Server)
+	// Mutex guarding the server map
+	serverMutex sync.RWMutex
 	// DB connection
 	db *sql.DB
 	// Discord bot session
@@ -121,6 +124,7 @@ func main() {
 
 		bot.WithEventListenerFunc(ready),
 		bot.WithEventListenerFunc(guildCreate),
+		bot.WithEventListenerFunc(guildJoin),
 		bot.WithEventListenerFunc(guildDelete),
 		bot.WithEventListenerFunc(interactionCreate),
 
@@ -171,7 +175,7 @@ func presenceUpdater() {
 			debounceTimer.Reset(500 * time.Millisecond)
 		case <-debounceTimer.C:
 			if s != nil {
-				_ = s.SetPresence(context.TODO(), gateway.WithCustomActivity("Serving "+strconv.Itoa(len(server))+" guilds!"))
+				_ = s.SetPresence(context.TODO(), gateway.WithCustomActivity("Serving "+strconv.Itoa(guildCount())+" guilds!"))
 			}
 		}
 	}
@@ -191,6 +195,14 @@ func ready(e *events.Ready) {
 }
 
 func guildCreate(e *events.GuildReady) {
+	initializeServer(e.GuildID)
+	notifyGuildCountChange()
+}
+
+// guildJoin is called when the bot is added to a guild while it's running.
+// Without this, the guild would never be added to the server map and any
+// command would crash with a nil pointer dereference.
+func guildJoin(e *events.GuildJoin) {
 	initializeServer(e.GuildID)
 	notifyGuildCountChange()
 }
