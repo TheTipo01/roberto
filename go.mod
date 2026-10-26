@@ -4,11 +4,11 @@ go 1.26.0
 
 require (
 	github.com/TheTipo01/libRoberto v0.0.0-20261017085202-5b947e102da2
-	github.com/disgoorg/disgo v0.19.6
+	github.com/disgoorg/disgo v0.19.7-0.20261025155912-d7be1040f3fb
 	github.com/disgoorg/godave/golibdave v0.3.0
 	github.com/disgoorg/snowflake/v2 v2.0.4-0.20250223124221-0e6fdabd91cc
 	github.com/kkyr/fig v0.5.0
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.61.0
 )
 
 require (
@@ -37,7 +37,7 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	modernc.org/libc v1.79.0 // indirect
+	modernc.org/libc v1.79.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
